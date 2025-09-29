@@ -7,6 +7,7 @@ class Hall(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     description = models.TextField(default="Nema opisa")
     owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='halls')
+    image = models.ImageField(upload_to="halls/", null=True, blank=True) 
 
     def __str__(self):
         return self.name

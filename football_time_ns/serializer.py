@@ -4,10 +4,12 @@ from .models import Hall, Profile, Availability, Appointment
 
 class HallSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
+    image = serializers.ImageField(use_url=True)
 
     class Meta:
         model = Hall
-        fields = ['id','name','address','price','description','owner']
+        fields = ['id','name','address','price','description','owner','image']
+
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source='profile.role', read_only=True)
