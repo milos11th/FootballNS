@@ -90,9 +90,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'football_db',
         'USER': 'postgres',
-        'PASSWORD': 'milos',
+        'PASSWORD': 'ubuntu',
         'HOST': 'localhost',
-        'PORT': '5433',
+        'PORT': '5432',
     }
 }
 

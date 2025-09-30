@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.db import transaction
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime,time
 
 from .models import Hall, Appointment, Availability
 from .serializer import (
@@ -17,9 +17,11 @@ from .permissions import IsOwnerRole
 
 # Hall list - read only
 class HallList(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
         halls = Hall.objects.all()
-        serializer = HallSerializer(halls, many=True)
+        serializer = HallSerializer(halls, many=True, context={'request': request})  # <-- context dodan
         return Response(serializer.data)
 
 # Hall create - only owners
@@ -33,8 +35,14 @@ class HallCreate(APIView):
             return Response(HallSerializer(hall).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Hall detail same as before
+# Hall detail =
 class HallDetail(APIView):
+    """
+    Retrieve / update / delete a Hall.
+    - GET: AllowAny (svi mogu videti detalje hale)
+    - PUT, DELETE: zahteva autentifikaciju i owner role
+    """
+
     def get_hall_by_pk(self, pk):
         try:
             return Hall.objects.get(pk=pk)
@@ -44,16 +52,18 @@ class HallDetail(APIView):
     def get(self, request, pk):
         hall = self.get_hall_by_pk(pk)
         if not hall:
-            return Response({'error':'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
-        serializer = HallSerializer(hall)
+            return Response({'error': 'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = HallSerializer(hall, context={'request': request})  # <-- context dodan
         return Response(serializer.data)
 
     def put(self, request, pk):
         hall = self.get_hall_by_pk(pk)
         if not hall:
-            return Response({'error':'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
+
         self.check_object_permissions(request, hall)
-        serializer = HallSerializer(hall, data=request.data)
+        serializer = HallSerializer(hall, data=request.data, context={'request': request})  # <-- context dodan
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -62,15 +72,20 @@ class HallDetail(APIView):
     def delete(self, request, pk):
         hall = self.get_hall_by_pk(pk)
         if not hall:
-            return Response({'error':'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
+
         self.check_object_permissions(request, hall)
         hall.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'DELETE']:
-            return [IsAuthenticatedOrReadOnly(), IsOwnerRole()]
-        return []
+            return [IsAuthenticated(), IsOwnerRole()]
+        return [AllowAny()]
+
+
+
+
 
 # Register / Me
 class RegisterView(generics.CreateAPIView):
