@@ -11,6 +11,18 @@ class Hall(models.Model):
 
     def __str__(self):
         return self.name
+    
+
+
+class HallImage(models.Model):
+    hall = models.ForeignKey(Hall, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to="halls/")
+
+    def __str__(self):
+        return f"{self.hall.name} Image"
+
+
+
 
 class Profile(models.Model):
     ROLE_CHOICES = (

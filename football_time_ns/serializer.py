@@ -1,14 +1,40 @@
+# football_time_ns/serializer.py  (ili serializers.py ako tako zoveš)
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Hall, Profile, Availability, Appointment
+from .models import Hall, Profile, Availability, Appointment, HallImage
+
+class HallImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HallImage
+        fields = ['id', 'image']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if not obj.image:
+            return None
+        if request is not None:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 class HallSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
-    image = serializers.ImageField(use_url=True)
+    images = HallImageSerializer(many=True, read_only=True)
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Hall
-        fields = ['id','name','address','price','description','owner','image']
+        fields = ['id', 'name', 'address', 'price', 'description', 'owner', 'image', 'images']
+
+    def get_image(self, obj):
+        # glavna pojedinačna slika (fallback), vraća absolute URL ako postoji request
+        request = self.context.get('request')
+        if not obj.image:
+            return None
+        if request is not None:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
 
 
 class UserSerializer(serializers.ModelSerializer):
