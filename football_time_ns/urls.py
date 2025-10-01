@@ -3,7 +3,7 @@ from .views import (
     HallList, HallCreate, HallDetail, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
-    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete
+    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -11,6 +11,7 @@ urlpatterns = [
     path('halls/', HallList.as_view(), name='hall_list'),
     path('halls/create/', HallCreate.as_view(), name='hall_create'),
     path('halls/<int:pk>/', HallDetail.as_view(), name='hall_detail'),
+    path("my-halls/", MyHallsView.as_view(), name="my-halls"),
 
     # availability
     path('availabilities/create/', AvailabilityCreate.as_view(), name='availability_create'),
