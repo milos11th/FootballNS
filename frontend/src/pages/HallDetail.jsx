@@ -1,4 +1,3 @@
-// src/pages/HallDetail.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
@@ -20,7 +19,6 @@ function HallDetail() {
   const [freeSlots, setFreeSlots] = useState([]);
   const [selectedSlotStart, setSelectedSlotStart] = useState(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
-
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
 
   // fetch hall details
@@ -59,9 +57,7 @@ function HallDetail() {
   const handleBook = () => {
     if (!selectedSlotStart) return alert("Odaberi termin!");
     const token =
-      localStorage.getItem("access") ||
-      localStorage.getItem("access_token") ||
-      localStorage.getItem("accessToken");
+      localStorage.getItem("access")
     if (!token) {
       if (
         window.confirm(

@@ -1,3 +1,4 @@
+import pytz
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -84,6 +85,14 @@ class HallDetail(APIView):
         return [AllowAny()]
 
 
+class MyHallsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Vrati hale koje pripadaju samo ulogovanom korisniku (owneru)
+        halls = Hall.objects.filter(owner=request.user)
+        serializer = HallSerializer(halls, many=True)
+        return Response(serializer.data)
 
 
 
@@ -147,37 +156,40 @@ def compute_free_intervals(availabilities, busy_intervals):
 
 # Hall free slots for a date or range
 class HallFreeSlots(APIView):
-    permission_classes = []  # public
+    permission_classes = []
+
     def get(self, request, hall_id):
         hall = get_object_or_404(Hall, pk=hall_id)
-        date = request.query_params.get('date', None)
-        start_q = request.query_params.get('start', None)
-        end_q = request.query_params.get('end', None)
+        tz = pytz.timezone("Europe/Belgrade")
+        date_str = request.query_params.get('date')
+        if not date_str:
+            return Response({'error':'Provide date=YYYY-MM-DD'}, status=400)
 
-        if date:
-            try:
-                day_start = datetime.fromisoformat(date + "T00:00:00")
-                day_end = datetime.fromisoformat(date + "T23:59:59")
-            except:
-                return Response({'error':'date must be YYYY-MM-DD'}, status=400)
-        elif start_q and end_q:
-            try:
-                day_start = parse_datetime(start_q)
-                day_end = parse_datetime(end_q)
-            except:
-                return Response({'error':'invalid datetimes'}, status=400)
-        else:
-            return Response({'error':'Provide date=YYYY-MM-DD or start & end datetimes'}, status=400)
+        try:
+            # start i end dana u Beograd timezone
+            local_start = tz.localize(datetime.strptime(date_str, "%Y-%m-%d"))
+            local_end = local_start + timedelta(days=1)
+            
+            day_start_utc = local_start.astimezone(pytz.UTC)
+            day_end_utc = local_end.astimezone(pytz.UTC)
+        except Exception:
+            return Response({'error':'date must be YYYY-MM-DD'}, status=400)
 
-        avails_qs = Availability.objects.filter(hall=hall, start__lt=day_end, end__gt=day_start)
-        avail_list = [(a.start, a.end) for a in avails_qs]
+        # sve availabilities i busy appointments za taj datum
+        avails_qs = Availability.objects.filter(
+            hall=hall, start__lt=day_end_utc, end__gt=day_start_utc
+        )
+        avail_list = [(a.start.astimezone(tz), a.end.astimezone(tz)) for a in avails_qs]
 
-        busy_qs = Appointment.objects.filter(hall=hall, status__in=['approved','pending'], start__lt=day_end, end__gt=day_start)
-        busy_list = [(b.start, b.end) for b in busy_qs]
+        busy_qs = Appointment.objects.filter(
+            hall=hall, status__in=['approved','pending'],
+            start__lt=day_end_utc, end__gt=day_start_utc
+        )
+        busy_list = [(b.start.astimezone(tz), b.end.astimezone(tz)) for b in busy_qs]
 
         free = compute_free_intervals(avail_list, busy_list)
 
-        # optional: split into 1h slots (change step as needed)
+        # slotovi po 1h
         slots = []
         for s,e in free:
             cur = s
@@ -185,7 +197,10 @@ class HallFreeSlots(APIView):
                 slots.append({'start': cur.isoformat(), 'end': (cur + timedelta(hours=1)).isoformat()})
                 cur += timedelta(hours=1)
 
-        return Response({'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free], 'hour_slots': slots})
+        return Response({
+            'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free],
+            'hour_slots': slots
+        })
 
 # Create appointment (user) -> pending
 class AppointmentCreateView(APIView):
@@ -289,19 +304,22 @@ class AppointmentDelete(APIView):
 # Admin / Public listings as needed
 class AppointmentList(APIView):
     permission_classes = []  # public
+
     def get(self, request):
-        # optionally support query params ?hall=1&date=2025-10-10
         hall_q = request.query_params.get('hall', None)
         date_q = request.query_params.get('date', None)
+        tz = pytz.timezone("Europe/Belgrade")
+
         qs = Appointment.objects.all()
         if hall_q:
             qs = qs.filter(hall__id=hall_q)
         if date_q:
             try:
-                day_start = datetime.fromisoformat(date_q + "T00:00:00")
-                day_end = datetime.fromisoformat(date_q + "T23:59:59")
-                qs = qs.filter(start__lt=day_end, end__gt=day_start)
-            except:
+                local_start = tz.localize(datetime.strptime(date_q, "%Y-%m-%d"))
+                local_end = local_start + timedelta(hours=23, minutes=59, seconds=59)
+                qs = qs.filter(start__lt=local_end.astimezone(pytz.UTC), end__gt=local_start.astimezone(pytz.UTC))
+            except Exception:
                 pass
+
         serializer = AppointmentSerializer(qs, many=True)
         return Response(serializer.data)

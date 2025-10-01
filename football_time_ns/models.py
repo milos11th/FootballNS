@@ -61,7 +61,7 @@ class Appointment(models.Model):
     checked_in = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ['-start']
+        ordering = ['-start']   
 
     def __str__(self):
         return f"{self.hall.name} | {self.user.username} | {self.start} - {self.end} ({self.status})"

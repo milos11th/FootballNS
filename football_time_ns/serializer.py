@@ -2,6 +2,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Hall, Profile, Availability, Appointment, HallImage
+from django.utils.timezone import make_aware
+import pytz
 
 class HallImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
@@ -66,11 +68,26 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Signal kreira profile
         return user
 
+
 class AvailabilitySerializer(serializers.ModelSerializer):
-    hall_name = serializers.ReadOnlyField(source='hall.name')
     class Meta:
         model = Availability
-        fields = ['id','hall','hall_name','start','end']
+        fields = ['hall', 'start', 'end']
+
+    def validate(self, attrs):
+        tz = pytz.timezone("Europe/Belgrade")
+        start = attrs['start']
+        end = attrs['end']
+
+        # Ako su naive, postavi ih u Beograd timezone
+        if start.tzinfo is None:
+            attrs['start'] = make_aware(start, timezone=tz)
+        if end.tzinfo is None:
+            attrs['end'] = make_aware(end, timezone=tz)
+
+        if attrs['start'] >= attrs['end']:
+            raise serializers.ValidationError("Start must be before end")
+        return attrs
 
 class AppointmentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
