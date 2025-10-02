@@ -1,4 +1,3 @@
-// src/pages/OwnerDashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -6,6 +5,9 @@ import { useAuth } from "../contexts/AuthContext";
 import OwnerHalls from "./OwnerHalls";
 import OwnerAvailability from "./OwnerAvailability";
 import OwnerAppointments from "./OwnerAppointments";
+import OwnerAvailabilityList from "./OwnerAvailabilityList";
+import { Tabs, Tab, Container, Alert, Spinner } from "react-bootstrap";
+import "../styles/OwnerDashboard.css";
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -24,11 +26,9 @@ export default function OwnerDashboard() {
       return;
     }
     if (user.role !== "owner") {
-      // ako nije owner, ne sme ovde biti
       navigate("/", { replace: true });
     }
-    // eslint-disable-next-line
-  }, [user, authLoading]);
+  }, [user, authLoading, navigate]);
 
   // Fetch owner's halls
   const fetchMyHalls = async () => {
@@ -39,96 +39,91 @@ export default function OwnerDashboard() {
       setMyHalls(res.data || []);
     } catch (err) {
       console.error("Greška prilikom dohvatanja mojih hala:", err);
-      setError("Greška prilikom dohvatanja hala. Pogledaj konzolu.");
+      setError("Greška prilikom dohvatanja hala.");
       setMyHalls([]);
     } finally {
       setLoadingHalls(false);
     }
   };
 
-  // initial load + when switching to halls tab
+  // initial load
   useEffect(() => {
     fetchMyHalls();
-    // eslint-disable-next-line
   }, []);
 
-  useEffect(() => {
-    if (activeTab === "halls") fetchMyHalls();
-    // eslint-disable-next-line
-  }, [activeTab]);
-
-  // Small helper: render tab buttons with active style
-  const TabButton = ({ id, children }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      style={{
-        marginRight: 8,
-        padding: "8px 12px",
-        cursor: "pointer",
-        background: activeTab === id ? "#0d6efd" : "transparent",
-        color: activeTab === id ? "#fff" : "#000",
-        border: "1px solid #0d6efd",
-        borderRadius: 6,
-      }}
-    >
-      {children}
-    </button>
-  );
-
   return (
-    <div style={{ maxWidth: 1100, margin: "24px auto", padding: 12 }}>
-      <h1>Owner Dashboard</h1>
-      <p>
-        Dobrodošao, <strong>{user?.username}</strong>
-      </p>
-
-      <div style={{ marginBottom: 18 }}>
-        <TabButton id="halls">My Halls</TabButton>
-        <TabButton id="availability">Availability</TabButton>
-        <TabButton id="appointments">Appointments</TabButton>
+    <Container className="mt-4">
+      <div className="mb-4">
+        <h1 className="text-dark fw-bold" style={{ color: "#2c3e50" }}>
+          Kontrolna Tabla
+        </h1>
+        <p className="lead text-muted">
+          Dobrodošao/la,{" "}
+          <strong className="text-dark" style={{ color: "#34495e" }}>
+            {user?.username}
+          </strong>
+        </p>
       </div>
 
-      <div style={{ padding: 12, border: "1px solid #e6e6e6", borderRadius: 8 }}>
-        {activeTab === "halls" && (
-          <div>
-            <h2>My Halls</h2>
+      <Tabs
+        activeKey={activeTab}
+        onSelect={(tab) => setActiveTab(tab)}
+        className="mb-4"
+        justify
+        variant="pills" // Promeni na pills za mekši izgled
+      >
+        <Tab eventKey="halls" title="📋 Moje Hale" className="border-0">
+          <div className="mt-3">
             {loadingHalls ? (
-              <p>Loading your halls...</p>
+              <div className="text-center">
+                <Spinner animation="border" role="status" className="me-2" />
+                Učitavanje hala...
+              </div>
             ) : error ? (
-              <p style={{ color: "red" }}>{error}</p>
-            ) : myHalls.length === 0 ? (
-              <div>
-                <p>Nemate kreiranih hala.</p>
-                <p>
-                  Možete ih dodati ovde ili preko Django admin panela. Kliknite
-                  na "Create Hall" ispod da dodate novu.
-                </p>
-                {/* Pozovi OwnerHalls i prosledi props — komponenta može koristiti ove props ako želi */}
-                <OwnerHalls myHalls={myHalls} loading={loadingHalls} refreshHalls={fetchMyHalls} />
-              </div>
+              <Alert variant="danger">{error}</Alert>
             ) : (
-              <div>
-                {/* render OwnerHalls i prosledi podatke + refresh callback */}
-                <OwnerHalls myHalls={myHalls} loading={loadingHalls} refreshHalls={fetchMyHalls} />
-              </div>
+              <OwnerHalls
+                myHalls={myHalls}
+                loading={loadingHalls}
+                refreshHalls={fetchMyHalls}
+              />
             )}
           </div>
-        )}
+        </Tab>
 
-        {activeTab === "availability" && (
-          <div>
-            <h2>Availability</h2>
+        <Tab
+          eventKey="availability"
+          title="➕ Kreiraj Dostupnost"
+          className="border-0"
+        >
+          <div className="mt-3">
             <OwnerAvailability myHalls={myHalls} refreshHalls={fetchMyHalls} />
           </div>
-        )}
+        </Tab>
 
-        {activeTab === "appointments" && (
-          <div>
-            <h2>Appointments</h2>
+        <Tab
+          eventKey="availability-list"
+          title="📊 Lista Dostupnosti"
+          className="border-0"
+        >
+          <div className="mt-3">
+            <OwnerAvailabilityList
+              myHalls={myHalls}
+              refreshHalls={fetchMyHalls}
+            />
+          </div>
+        </Tab>
+
+        <Tab
+          eventKey="appointments"
+          title="📅 Rezervacije"
+          className="border-0"
+        >
+          <div className="mt-3">
             <OwnerAppointments myHalls={myHalls} refreshHalls={fetchMyHalls} />
           </div>
-        )}
-      </div>
-    </div>
+        </Tab>
+      </Tabs>
+    </Container>
   );
 }

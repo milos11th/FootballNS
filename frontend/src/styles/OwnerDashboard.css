@@ -1,0 +1,97 @@
+/* Owner Dashboard custom styles */
+.owner-dashboard {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.owner-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.owner-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.tab-content {
+  background: #f8f9fa;
+  border-radius: 0 8px 8px 8px;
+  padding: 20px;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #3498db !important;
+  border-color: #3498db !important;
+}
+
+.nav-pills .nav-link {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Custom badge styles */
+.badge-custom {
+  background-color: #ecf0f1;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+/* Custom button styles */
+.btn-custom-primary {
+  background-color: #3498db;
+  border-color: #3498db;
+  color: white;
+}
+
+.btn-custom-primary:hover {
+  background-color: #2980b9;
+  border-color: #2980b9;
+}
+
+.btn-custom-success {
+  background-color: #27ae60;
+  border-color: #27ae60;
+  color: white;
+}
+
+.btn-custom-success:hover {
+  background-color: #219a52;
+  border-color: #219a52;
+}
+
+/* Hall card specific styles */
+.hall-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.hall-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  border-color: #3498db;
+}
+
+.hall-title {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.hall-address {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.hall-price {
+  color: #27ae60;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.hall-description {
+  color: #5d6d7e;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}

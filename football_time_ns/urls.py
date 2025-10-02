@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    HallList, HallCreate, HallDetail, RegisterView, MeView,
+    AvailabilityDelete, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
     OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView
@@ -12,11 +12,14 @@ urlpatterns = [
     path('halls/create/', HallCreate.as_view(), name='hall_create'),
     path('halls/<int:pk>/', HallDetail.as_view(), name='hall_detail'),
     path("my-halls/", MyHallsView.as_view(), name="my-halls"),
+    path('halls/<int:hall_id>/images/', HallImagesCreate.as_view(), name='hall_images_create'),
+    path('halls/images/<int:pk>/', HallImageDelete.as_view(), name='hall_image_delete'),
 
     # availability
     path('availabilities/create/', AvailabilityCreate.as_view(), name='availability_create'),
-    path('availabilities/', AvailabilityList.as_view(), name='availability_list'),
+    path('availabilities/', AvailabilityList.as_view(), name='availability_list'),  # BEZ hall_id
     path('halls/<int:hall_id>/free/', HallFreeSlots.as_view(), name='hall_free_slots'),
+    path('availabilities/<int:pk>/', AvailabilityDelete.as_view(), name='availability_delete'),
 
     # auth
     path('api/register/', RegisterView.as_view(), name='register'),
