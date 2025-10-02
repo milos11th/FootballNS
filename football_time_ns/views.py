@@ -9,9 +9,9 @@ from django.utils.dateparse import parse_datetime
 from django.db import transaction
 from datetime import timedelta, datetime,time
 
-from .models import Hall, Appointment, Availability
+from .models import Hall, Appointment, Availability, HallImage
 from .serializer import (
-    HallSerializer, RegisterSerializer, UserSerializer,
+    HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
@@ -113,22 +113,52 @@ class MeView(APIView):
 # Availability create/list (owners create)
 class AvailabilityCreate(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
+    
     def post(self, request):
         serializer = AvailabilitySerializer(data=request.data)
         if serializer.is_valid():
             hall = serializer.validated_data['hall']
+            start = serializer.validated_data['start']
+            end = serializer.validated_data['end']
+            
+            # Provera vlasništva
             if hall.owner != request.user:
                 return Response({'error':'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Provera preklapanja
+            overlapping = Availability.objects.filter(
+                hall=hall,
+                start__lt=end,
+                end__gt=start
+            ).exists()
+            
+            if overlapping:
+                return Response(
+                    {'error': 'Već postoji availability za ovu halu u izabranom vremenskom periodu.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AvailabilityList(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
-    def get(self, request, hall_id=None):
+    
+    def get(self, request):
         qs = Availability.objects.all()
-        if hall_id:
+        
+        # DODAJ OVO: Filtriranje po vlasniku ako je ulogovan
+        if request.user.is_authenticated:
+            # Ako je owner, prikaži samo availability-je za njegove hale
+            if hasattr(request.user, 'profile') and request.user.profile.role == 'owner':
+                qs = qs.filter(hall__owner=request.user)
+        
+        # Postojeći filter po hali
+        hall_id = request.query_params.get('hall_id')
+        if hall_id and hall_id != 'all':
             qs = qs.filter(hall__id=hall_id)
+        
         serializer = AvailabilitySerializer(qs, many=True)
         return Response(serializer.data)
 
@@ -155,6 +185,7 @@ def compute_free_intervals(availabilities, busy_intervals):
     return [(s,e) for s,e in free if s < e]
 
 # Hall free slots for a date or range
+
 class HallFreeSlots(APIView):
     permission_classes = []
 
@@ -166,12 +197,19 @@ class HallFreeSlots(APIView):
             return Response({'error':'Provide date=YYYY-MM-DD'}, status=400)
 
         try:
-            # start i end dana u Beograd timezone
-            local_start = tz.localize(datetime.strptime(date_str, "%Y-%m-%d"))
+            # Pravilan način za kreiranje datuma u Europe/Belgrade
+            naive_date = datetime.strptime(date_str, "%Y-%m-%d")
+            local_start = tz.localize(naive_date)
             local_end = local_start + timedelta(days=1)
             
+            # Konvertuj u UTC za bazu
             day_start_utc = local_start.astimezone(pytz.UTC)
             day_end_utc = local_end.astimezone(pytz.UTC)
+            
+            print(f"=== DEBUG FREE SLOTS ===")
+            print(f"Query date: {date_str}")
+            print(f"Local range: {local_start} to {local_end}")
+            print(f"UTC range: {day_start_utc} to {day_end_utc}")
         except Exception:
             return Response({'error':'date must be YYYY-MM-DD'}, status=400)
 
@@ -196,6 +234,10 @@ class HallFreeSlots(APIView):
             while cur + timedelta(hours=1) <= e:
                 slots.append({'start': cur.isoformat(), 'end': (cur + timedelta(hours=1)).isoformat()})
                 cur += timedelta(hours=1)
+
+        print(f"Found {len(slots)} free slots")
+        print("Availabilities in range:", [(a.start, a.end) for a in avails_qs])
+        print("==========================")
 
         return Response({
             'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free],
@@ -323,3 +365,48 @@ class AppointmentList(APIView):
 
         serializer = AppointmentSerializer(qs, many=True)
         return Response(serializer.data)
+
+
+class HallImagesCreate(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def post(self, request, hall_id):
+        hall = get_object_or_404(Hall, pk=hall_id)
+        if hall.owner != request.user:
+            return Response({'error': 'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
+
+        files = request.FILES.getlist('images') or []
+        created = []
+        for f in files:
+            hi = HallImage.objects.create(hall=hall, image=f)
+            created.append(hi)
+        # Ako si poslao samo 'image' umesto 'images'
+        if not files and request.FILES.get('image'):
+            hi = HallImage.objects.create(hall=hall, image=request.FILES.get('image'))
+            created.append(hi)
+
+        serializer = HallImageSerializer(created, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# NEW: delete single HallImage by pk
+class HallImageDelete(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def delete(self, request, pk):
+        hi = get_object_or_404(HallImage, pk=pk)
+        if hi.hall.owner != request.user:
+            return Response({'error':'Not owner'}, status=status.HTTP_403_FORBIDDEN)
+        hi.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+
+class AvailabilityDelete(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def delete(self, request, pk):
+        availability = get_object_or_404(Availability, pk=pk)
+        if availability.hall.owner != request.user:
+            return Response({'error': 'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
+        availability.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

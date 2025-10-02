@@ -1,11 +1,11 @@
-// src/components/Form.jsx
 import React, { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import "../styles/Form.css";
 import { useAuth } from "../contexts/AuthContext";
+import { showError, showApiError, showLoginError } from "../utils/sweetAlert";
 
-function Form({ route, method }) {
+function Form({ route, method, onSuccess, onError }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
@@ -23,6 +23,13 @@ function Form({ route, method }) {
     e.preventDefault();
     setLoading(true);
     setErrors(null);
+
+    // Validacija za registraciju
+    if (method === "register" && password !== password2) {
+      await showError("Lozinke se ne poklapaju!");
+      setLoading(false);
+      return;
+    }
 
     try {
       let payload;
@@ -42,62 +49,101 @@ function Form({ route, method }) {
       const res = await api.post(route, payload);
 
       if (method === "login") {
-        // backend returns { access, refresh }
-        const u = await login({ access: res.data.access, refresh: res.data.refresh });
+        const u = await login({
+          access: res.data.access,
+          refresh: res.data.refresh,
+        });
 
-        // redirect according to role (if loadMe succeeded)
+        // UKLANJAMO showSuccess - samo redirect
+        // await showSuccess('Uspešno ste se prijavili!');
+
+        // redirect according to role
         if (u && u.role === "owner") {
           navigate("/owner", { replace: true });
         } else {
           navigate("/", { replace: true });
         }
       } else {
-        alert("Registration successful. Please log in.");
+        // UKLANJAMO showSuccess za registraciju - samo redirect
+        // await showSuccess("Registracija uspešna! Sada se možete prijaviti.");
         navigate("/login", { replace: true });
       }
     } catch (err) {
       console.error(err);
-      if (err.response && err.response.data) {
-        setErrors(err.response.data);
+
+      // OSTAJE SAMO ZA GREŠKE
+      if (method === "login") {
+        await showLoginError(err);
       } else {
-        setErrors({ non_field_errors: ["Server error or network error"] });
+        await showApiError(err);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const renderErrors = () => {
-    if (!errors) return null;
-    return (
-      <div className="form-errors">
-        {Object.entries(errors).map(([key, val]) => (
-          <div key={key}>
-            <strong>{key}:</strong> {Array.isArray(val) ? val.join(" ") : String(val)}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <form onSubmit={handleSubmit} className="form-container">
-      <h1>{name}</h1>
-      {renderErrors()}
+      <h1>{method === "login" ? "Prijava" : "Registracija"}</h1>
 
-      <input className="form-input" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
-      <input className="form-input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required />
+      <input
+        className="form-input"
+        type="text"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        placeholder="Korisničko ime"
+        required
+      />
+      <input
+        className="form-input"
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Lozinka"
+        required
+      />
 
       {method !== "login" && (
         <>
-          <input className="form-input" type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="Confirm password" required />
-          <input className="form-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" />
-          <input className="form-input" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="First name (optional)" />
-          <input className="form-input" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Last name (optional)" />
+          <input
+            className="form-input"
+            type="password"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            placeholder="Potvrdi lozinku"
+            required
+          />
+          <input
+            className="form-input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email (opciono)"
+          />
+          <input
+            className="form-input"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Ime (opciono)"
+          />
+          <input
+            className="form-input"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Prezime (opciono)"
+          />
         </>
       )}
 
-      <button className="form-button" type="submit" disabled={loading}>{loading ? "Loading..." : name}</button>
+      <button className="form-button" type="submit" disabled={loading}>
+        {loading
+          ? "Učitavanje..."
+          : method === "login"
+          ? "Prijavi se"
+          : "Registruj se"}
+      </button>
     </form>
   );
 }

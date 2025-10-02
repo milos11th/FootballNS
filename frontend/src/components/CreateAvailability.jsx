@@ -1,13 +1,16 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { showSuccess, showApiError } from "../utils/sweetAlert";
 
 export default function CreateAvailability({ hallId }) {
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     const start = new Date(`${date}T${startTime}:00`);
     const end = new Date(`${date}T${endTime}:00`);
@@ -19,7 +22,7 @@ export default function CreateAvailability({ hallId }) {
     };
 
     try {
-      const token = localStorage.getItem("token"); // pretpostavljamo da je owner ulogovan
+      const token = localStorage.getItem("token");
       const res = await axios.post(
         "http://localhost:8000/availabilities/create/",
         payload,
@@ -27,20 +30,27 @@ export default function CreateAvailability({ hallId }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      alert("Availability created!");
-      console.log(res.data);
-    } catch (err) {
-  console.error(err.response ? err.response.data : err);
-  alert("Error creating availability. Pogledaj konzolu.");
-}
 
+      await showSuccess("Dostupnost uspešno kreirana!");
+      console.log(res.data);
+
+      // Reset form
+      setDate("");
+      setStartTime("");
+      setEndTime("");
+    } catch (err) {
+      console.error(err.response ? err.response.data : err);
+      showApiError(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: "auto" }}>
-      <h2>Create Availability</h2>
+      <h2>Kreiraj Dostupnost</h2>
       <label>
-        Date:
+        Datum:
         <input
           type="date"
           value={date}
@@ -50,7 +60,7 @@ export default function CreateAvailability({ hallId }) {
       </label>
       <br />
       <label>
-        Start Time:
+        Vreme početka:
         <input
           type="time"
           value={startTime}
@@ -60,7 +70,7 @@ export default function CreateAvailability({ hallId }) {
       </label>
       <br />
       <label>
-        End Time:
+        Vreme završetka:
         <input
           type="time"
           value={endTime}
@@ -69,7 +79,9 @@ export default function CreateAvailability({ hallId }) {
         />
       </label>
       <br />
-      <button type="submit">Create Availability</button>
+      <button type="submit" disabled={loading}>
+        {loading ? "Kreiranje..." : "Kreiraj Dostupnost"}
+      </button>
     </form>
   );
 }

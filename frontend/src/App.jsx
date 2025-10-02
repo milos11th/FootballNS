@@ -1,4 +1,3 @@
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
@@ -11,6 +10,7 @@ import MyNavBar from "./components/MyNavBar";
 import MyFooter from "./components/MyFooter";
 import RequireOwner from "./components/RequireOwner";
 import Logout from "./pages/Logout";
+import "../src/styles/index.css";
 
 function App() {
   return (
@@ -24,7 +24,14 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/halls/:id" element={<HallDetail />} />
-            <Route path="/owner" element={<RequireOwner><OwnerDashboard /></RequireOwner>} />
+            <Route
+              path="/owner"
+              element={
+                <RequireOwner>
+                  <OwnerDashboard />
+                </RequireOwner>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

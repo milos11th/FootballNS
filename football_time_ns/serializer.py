@@ -1,4 +1,5 @@
-# football_time_ns/serializer.py  (ili serializers.py ako tako zoveš)
+# backend app: serializer.py (ili serializers.py — koristi ime koje već imaš)
+from datetime import datetime
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Hall, Profile, Availability, Appointment, HallImage
@@ -23,20 +24,22 @@ class HallImageSerializer(serializers.ModelSerializer):
 class HallSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
     images = HallImageSerializer(many=True, read_only=True)
-    image = serializers.SerializerMethodField()
+    # make image writable so we can upload/update main image via multipart
+    image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Hall
         fields = ['id', 'name', 'address', 'price', 'description', 'owner', 'image', 'images']
 
-    def get_image(self, obj):
-        # glavna pojedinačna slika (fallback), vraća absolute URL ako postoji request
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
         request = self.context.get('request')
-        if not obj.image:
-            return None
-        if request is not None:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url
+        # replace image path with absolute URL (or null)
+        if instance.image:
+            data['image'] = request.build_absolute_uri(instance.image.url) if request else instance.image.url
+        else:
+            data['image'] = None
+        return data
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -68,23 +71,39 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Signal kreira profile
         return user
 
-
 class AvailabilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Availability
-        fields = ['hall', 'start', 'end']
+        fields = ['id','hall','start','end']
 
     def validate(self, attrs):
         tz = pytz.timezone("Europe/Belgrade")
         start = attrs['start']
         end = attrs['end']
 
-        # Ako su naive, postavi ih u Beograd timezone
-        if start.tzinfo is None:
-            attrs['start'] = make_aware(start, timezone=tz)
-        if end.tzinfo is None:
-            attrs['end'] = make_aware(end, timezone=tz)
+        print("=== DEBUG BACKEND AVAILABILITY ===")
+        print(f"Received - Start: {start} (type: {type(start)})")
+        print(f"Received - End: {end} (type: {type(end)})")
 
+        # Ako su stringovi, parsiraj ih
+        if isinstance(start, str):
+            try:
+                naive_start = datetime.fromisoformat(start.replace('Z', '+00:00'))
+                attrs['start'] = make_aware(naive_start, timezone=tz)
+            except ValueError:
+                raise serializers.ValidationError("Invalid start date format")
+                
+        if isinstance(end, str):
+            try:
+                naive_end = datetime.fromisoformat(end.replace('Z', '+00:00'))
+                attrs['end'] = make_aware(naive_end, timezone=tz)
+            except ValueError:
+                raise serializers.ValidationError("Invalid end date format")
+
+        print(f"Parsed - Start: {attrs['start']}")
+        print(f"Parsed - End: {attrs['end']}")
+        print("===================================")
+        
         if attrs['start'] >= attrs['end']:
             raise serializers.ValidationError("Start must be before end")
         return attrs
@@ -102,3 +121,11 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = ['id','hall','start','end']
+
+
+class AvailabilitySerializer(serializers.ModelSerializer):
+    hall_name = serializers.ReadOnlyField(source='hall.name')  # DODAJ OVO
+    
+    class Meta:
+        model = Availability
+        fields = ['id', 'hall', 'hall_name', 'start', 'end']  # DODAJ hall_name

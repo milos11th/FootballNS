@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -8,10 +7,15 @@ export default function Logout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    logout();
-    navigate("/login", { replace: true });
-    // eslint-disable-next-line
-  }, []);
+    const performLogout = async () => {
+      logout();
+      // UKLANJAMO showSuccess - samo redirect
+      // await showSuccess('Uspešno ste se odjavili!');
+      navigate("/login", { replace: true });
+    };
 
-  return <div>Logging out...</div>;
+    performLogout();
+  }, [logout, navigate]);
+
+  return <div>Odjava...</div>;
 }

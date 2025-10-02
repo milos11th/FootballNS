@@ -4,6 +4,13 @@ import api from "../api";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../styles/HallDetail.css";
+import { Carousel, Image, Badge, Card } from "react-bootstrap";
+import {
+  showConfirm,
+  showSuccess,
+  showError,
+  showApiError,
+} from "../utils/sweetAlert";
 
 const getFullUrl = (path) => {
   if (!path) return null;
@@ -29,7 +36,10 @@ function HallDetail() {
       .then((res) => {
         if (mounted) setHall(res.data);
       })
-      .catch((err) => console.error("Error fetching hall:", err));
+      .catch((err) => {
+        console.error("Error fetching hall:", err);
+        showApiError(err);
+      });
     return () => {
       mounted = false;
     };
@@ -43,7 +53,9 @@ function HallDetail() {
       .get(`/halls/${id}/free/?date=${dateStr}`)
       .then((res) => {
         const slots = res.data?.hour_slots || [];
-        const unique = Array.from(new Map(slots.map((s) => [s.start, s])).values());
+        const unique = Array.from(
+          new Map(slots.map((s) => [s.start, s])).values()
+        );
         setFreeSlots(unique);
         setSelectedSlotStart(null);
       })
@@ -54,26 +66,32 @@ function HallDetail() {
       .finally(() => setLoadingSlots(false));
   }, [selectedDate, id]);
 
-  const handleBook = () => {
-    if (!selectedSlotStart) return alert("Odaberi termin!");
-    const token =
-      localStorage.getItem("access")
+  const handleBook = async () => {
+    if (!selectedSlotStart) {
+      await showError("Molimo odaberite termin za rezervaciju!");
+      return;
+    }
+
+    const token = localStorage.getItem("access");
     if (!token) {
-      if (
-        window.confirm(
-          "Morate biti ulogovani da rezervišete termin. Da li želite da se ulogujete?"
-        )
-      ) {
+      const result = await showConfirm(
+        "Potrebna prijava",
+        "Morate biti ulogovani da rezervišete termin. Da li želite da se ulogujete?"
+      );
+      if (result.isConfirmed) {
         navigate("/login");
       }
       return;
     }
 
     const slot = freeSlots.find((s) => s.start === selectedSlotStart);
-    if (!slot) return alert("Izabrani termin više nije dostupan.");
+    if (!slot) {
+      await showError("Izabrani termin više nije dostupan.");
+      return;
+    }
 
-    api
-      .post(
+    try {
+      await api.post(
         "/appointments/create/",
         {
           hall: id,
@@ -83,17 +101,17 @@ function HallDetail() {
         {
           headers: { Authorization: `Bearer ${token}` },
         }
-      )
-      .then(() => {
-        alert("Rezervacija poslana!");
-        // odmah ažuriramo listu termina bez reload
-        setFreeSlots((prev) => prev.filter((s) => s.start !== slot.start));
-        setSelectedSlotStart(null);
-      })
-      .catch((err) => {
-        console.error(err);
-        alert(err.response?.data?.error || "Greška pri rezervaciji");
-      });
+      );
+
+      await showSuccess(
+        "Rezervacija uspešno poslata! Čeka se odobrenje vlasnika."
+      );
+      setFreeSlots((prev) => prev.filter((s) => s.start !== slot.start));
+      setSelectedSlotStart(null);
+    } catch (err) {
+      console.error(err);
+      showApiError(err);
+    }
   };
 
   if (!hall) return <div className="loading">Učitavanje hale...</div>;
@@ -110,89 +128,139 @@ function HallDetail() {
     .map(getFullUrl)
     .filter(Boolean);
 
-  const showPrev = () =>
-    setCurrentImageIdx((prev) =>
-      prev === 0 ? fullImages.length - 1 : prev - 1
-    );
-  const showNext = () =>
-    setCurrentImageIdx((prev) =>
-      prev === fullImages.length - 1 ? 0 : prev + 1
-    );
-
   return (
     <div className="hall-detail-container">
-      <h1 className="hall-title">{hall.name}</h1>
+      {/* Hall Header with basic info */}
+      <div className="hall-header">
+        <h1 className="hall-title">{hall.name}</h1>
+        <div className="hall-badges">
+          <Badge className="address-badge">📍 {hall.address}</Badge>
+          <Badge className="price-badge">💰 {hall.price} RSD/sat</Badge>
+        </div>
+        {hall.description && (
+          <Card className="description-card">
+            <Card.Body>
+              <h5 className="description-title">📝 Opis:</h5>
+              <p className="hall-description">{hall.description}</p>
+            </Card.Body>
+          </Card>
+        )}
+      </div>
 
       <div className="hall-detail-flex">
-        {/* Left column */}
+        {/* Left column - Images */}
         <div className="hall-left">
           {fullImages.length === 0 ? (
-            <div className="hall-placeholder">Nema slike</div>
+            <div className="hall-placeholder">
+              <div className="placeholder-content">
+                <div className="placeholder-icon">📷</div>
+                <p>Nema dostupnih slika</p>
+              </div>
+            </div>
           ) : fullImages.length === 1 ? (
             <div className="hall-main-image">
               <img src={fullImages[0]} alt={hall.name} />
             </div>
           ) : (
             <div className="hall-carousel">
-              <button className="carousel-btn prev" onClick={showPrev}>
-                ‹
-              </button>
-              <img
-                src={fullImages[currentImageIdx]}
-                alt={`${hall.name} ${currentImageIdx}`}
-              />
-              <button className="carousel-btn next" onClick={showNext}>
-                ›
-              </button>
+              <Carousel
+                activeIndex={currentImageIdx}
+                onSelect={(selectedIndex) => setCurrentImageIdx(selectedIndex)}
+                interval={null}
+                variant="dark"
+              >
+                {fullImages.map((url, idx) => (
+                  <Carousel.Item key={idx}>
+                    <img
+                      src={url}
+                      alt={`${hall.name}-${idx}`}
+                      className="carousel-image"
+                    />
+                  </Carousel.Item>
+                ))}
+              </Carousel>
+
+              {/* thumbnails */}
+              <div className="thumbnails-container">
+                {fullImages.map((url, idx) => (
+                  <Image
+                    key={idx}
+                    src={url}
+                    thumbnail
+                    onClick={() => setCurrentImageIdx(idx)}
+                    className={`thumbnail-image ${
+                      idx === currentImageIdx ? "thumbnail-active" : ""
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           )}
-
-          <p className="hall-price">
-            <strong>Cena:</strong> {hall.price} RSD
-          </p>
-          <p className="hall-description">{hall.description}</p>
         </div>
 
-        {/* Right column */}
+        {/* Right column - Calendar & Booking */}
         <div className="hall-right">
-          <h3>Odaberi datum</h3>
-          <Calendar onChange={setSelectedDate} value={selectedDate} />
+          <Card className="booking-card">
+            <Card.Body>
+              <h4 className="calendar-title">📅 Odaberi datum</h4>
+              <Calendar
+                onChange={setSelectedDate}
+                value={selectedDate}
+                className="custom-calendar"
+              />
 
-          <h3 style={{ marginTop: "20px" }}>Slobodni termini</h3>
+              <div className="slots-section">
+                <h5 className="slots-title">🕒 Slobodni termini</h5>
 
-          {loadingSlots ? (
-            <p>Učitavanje termina...</p>
-          ) : freeSlots.length === 0 ? (
-            <p>Nema slobodnih termina za ovaj datum</p>
-          ) : (
-            <div className="hall-slots">
-              {freeSlots.map((slot) => {
-                const isSelected = slot.start === selectedSlotStart;
-                return (
-                  <button
-                    key={slot.start}
-                    onClick={() => setSelectedSlotStart(slot.start)}
-                    className={`hall-slot-button ${
-                      isSelected ? "selected" : ""
-                    }`}
-                  >
-                    {new Date(slot.start).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
+                {loadingSlots ? (
+                  <div className="loading-slots">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Učitavanje...</span>
+                    </div>
+                    <p className="loading-text">Učitavanje termina...</p>
+                  </div>
+                ) : freeSlots.length === 0 ? (
+                  <div className="no-slots">
+                    <p className="no-slots-text">
+                      ❌ Nema slobodnih termina za ovaj datum
+                    </p>
+                  </div>
+                ) : (
+                  <div className="hall-slots">
+                    {freeSlots.map((slot) => {
+                      const isSelected = slot.start === selectedSlotStart;
+                      return (
+                        <button
+                          key={slot.start}
+                          onClick={() => setSelectedSlotStart(slot.start)}
+                          className={`hall-slot-button ${
+                            isSelected ? "selected" : ""
+                          }`}
+                        >
+                          {new Date(slot.start).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </button>
+                      );
                     })}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  </div>
+                )}
 
-          <button
-            onClick={handleBook}
-            className="book-button"
-            disabled={!selectedSlotStart}
-          >
-            Rezerviši termin
-          </button>
+                <button
+                  onClick={handleBook}
+                  className={`book-button ${
+                    !selectedSlotStart ? "disabled" : ""
+                  }`}
+                  disabled={!selectedSlotStart}
+                >
+                  {!selectedSlotStart
+                    ? "Izaberi termin"
+                    : "✅ Rezerviši termin"}
+                </button>
+              </div>
+            </Card.Body>
+          </Card>
         </div>
       </div>
     </div>

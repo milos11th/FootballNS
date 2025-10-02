@@ -1,0 +1,166 @@
+/* styles/Halls.css */
+
+/* Container */
+.halls-container {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+/* Naslovi */
+.halls-title {
+  color: #2c3e50;
+  font-weight: 800;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.halls-subtitle {
+  color: #7f8c8d;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.total-badge {
+  font-size: 1.1rem;
+  padding: 0.5rem 1.5rem;
+  background-color: #6c757d !important;
+}
+
+/* Kartica */
+.hall-card {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.hall-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Slika */
+.hall-image-container {
+  height: 220px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hall-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.hall-card:hover .hall-image {
+  transform: scale(1.05);
+}
+
+.hall-placeholder {
+  background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  height: 100%;
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Telo kartice */
+.card-body-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.hall-header {
+  margin-bottom: 1rem;
+}
+
+.hall-name {
+  color: #2c3e50;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.hall-address {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.hall-description {
+  color: #5d6d7e;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex-grow: 1;
+  margin-bottom: 1.5rem;
+}
+
+/* Footer kartice */
+.hall-footer {
+  margin-top: auto;
+}
+
+.price-container {
+  margin-bottom: 1rem;
+}
+
+.price-badge {
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(45deg, #28a745, #20c997);
+  border: none;
+  font-weight: 600;
+}
+
+.view-button {
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  border: none;
+  font-size: 1rem;
+}
+
+.view-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+  background: linear-gradient(45deg, #2980b9, #3498db);
+}
+
+/* Empty state */
+.empty-state {
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .halls-title {
+    font-size: 2rem;
+  }
+
+  .halls-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .hall-image-container {
+    height: 180px;
+  }
+}
