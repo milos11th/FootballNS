@@ -125,6 +125,16 @@ class AvailabilityCreate(APIView):
             if hall.owner != request.user:
                 return Response({'error':'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
             
+           
+            
+            # Konvertuj u Belgrade timezone ako je potrebno
+            tz = pytz.timezone("Europe/Belgrade")
+            if start.tzinfo is None:
+                start = tz.localize(start)
+            if end.tzinfo is None:
+                end = tz.localize(end)
+        
+            
             # Provera preklapanja
             overlapping = Availability.objects.filter(
                 hall=hall,
@@ -138,8 +148,14 @@ class AvailabilityCreate(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Sačuvaj sa ispravnim vremenom
+            availability = Availability.objects.create(
+                hall=hall,
+                start=start,
+                end=end
+            )
+            
+            return Response(AvailabilitySerializer(availability).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AvailabilityList(APIView):
@@ -148,7 +164,7 @@ class AvailabilityList(APIView):
     def get(self, request):
         qs = Availability.objects.all()
         
-        # DODAJ OVO: Filtriranje po vlasniku ako je ulogovan
+       
         if request.user.is_authenticated:
             # Ako je owner, prikaži samo availability-je za njegove hale
             if hasattr(request.user, 'profile') and request.user.profile.role == 'owner':
@@ -193,24 +209,25 @@ class HallFreeSlots(APIView):
         hall = get_object_or_404(Hall, pk=hall_id)
         tz = pytz.timezone("Europe/Belgrade")
         date_str = request.query_params.get('date')
+        
         if not date_str:
             return Response({'error':'Provide date=YYYY-MM-DD'}, status=400)
 
         try:
-            # Pravilan način za kreiranje datuma u Europe/Belgrade
-            naive_date = datetime.strptime(date_str, "%Y-%m-%d")
-            local_start = tz.localize(naive_date)
-            local_end = local_start + timedelta(days=1)
+            # Parsiraj datum (bez vremena)
+            naive_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            
+            # Kreiraj datetime objekte za ceo dan u Belgrade timezone
+            local_start = tz.localize(datetime.combine(naive_date, time(0, 0)))
+            local_end = tz.localize(datetime.combine(naive_date, time(23, 59, 59)))
             
             # Konvertuj u UTC za bazu
             day_start_utc = local_start.astimezone(pytz.UTC)
             day_end_utc = local_end.astimezone(pytz.UTC)
+           
             
-            print(f"=== DEBUG FREE SLOTS ===")
-            print(f"Query date: {date_str}")
-            print(f"Local range: {local_start} to {local_end}")
-            print(f"UTC range: {day_start_utc} to {day_end_utc}")
-        except Exception:
+        except Exception as e:
+            print(f"Date parsing error: {e}")
             return Response({'error':'date must be YYYY-MM-DD'}, status=400)
 
         # sve availabilities i busy appointments za taj datum
@@ -232,12 +249,12 @@ class HallFreeSlots(APIView):
         for s,e in free:
             cur = s
             while cur + timedelta(hours=1) <= e:
-                slots.append({'start': cur.isoformat(), 'end': (cur + timedelta(hours=1)).isoformat()})
+                slots.append({
+                    'start': cur.isoformat(), 
+                    'end': (cur + timedelta(hours=1)).isoformat()
+                })
                 cur += timedelta(hours=1)
 
-        print(f"Found {len(slots)} free slots")
-        print("Availabilities in range:", [(a.start, a.end) for a in avails_qs])
-        print("==========================")
 
         return Response({
             'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free],
@@ -410,3 +427,16 @@ class AvailabilityDelete(APIView):
             return Response({'error': 'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
         availability.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+# Owner: all appointments for their halls (history)
+class OwnerAllAppointments(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def get(self, request):
+        # Vrati sve rezervacije za sve hale ovog ownera
+        halls = Hall.objects.filter(owner=request.user)
+        appointments = Appointment.objects.filter(hall__in=halls).order_by('-start')
+        
+        serializer = AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)

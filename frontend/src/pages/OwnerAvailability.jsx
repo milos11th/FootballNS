@@ -11,61 +11,87 @@ import {
 } from "react-bootstrap";
 import { showSuccess, showApiError } from "../utils/sweetAlert";
 
-function OwnerAvailability() {
-  const [myHalls, setMyHalls] = useState([]);
+function OwnerAvailability({ myHalls, refreshHalls }) {
+  // Dodaj propse
   const [selectedHall, setSelectedHall] = useState("");
   const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("16:00");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
-
-  useEffect(() => {
-    fetchMyHalls();
-  }, []);
-
-  const fetchMyHalls = async () => {
-    try {
-      const res = await api.get("/my-halls/");
-      setMyHalls(res.data);
-    } catch (err) {
-      console.error("Greška kod dohvatanja mojih hala:", err);
-      setMessage({ type: "danger", text: "Greška pri učitavanju hala" });
-    }
-  };
+  const tzOffset = new Date().getTimezoneOffset() * 60000;
+  const startDateTime = new Date(
+    new Date(`${date}T${startTime}`).getTime() - tzOffset
+  );
+  const endDateTime = new Date(
+    new Date(`${date}T${endTime}`).getTime() - tzOffset
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage({ type: "", text: "" });
+    setLoading(true);
+    setMessage({ type: "", text: "" }); // Koristi setMessage umesto setError
 
+    // Validacija
     if (!selectedHall) {
-      setMessage({ type: "warning", text: "Odaberi halu!" });
+      setMessage({ type: "danger", text: "Morate odabrati halu" });
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!date) {
+      setMessage({ type: "danger", text: "Morate odabrati datum" });
+      setLoading(false);
+      return;
+    }
+
+    if (startTime >= endTime) {
+      setMessage({
+        type: "danger",
+        text: "Krajnje vreme mora biti posle početnog vremena",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const start = new Date(`${date}T${startTime}:00`);
-      const end = new Date(`${date}T${endTime}:00`);
+      // Kreiraj Date objekte sa ispravnim timezone
+      const startDateTime = new Date(`${date}T${startTime}`);
+      const endDateTime = new Date(`${date}T${endTime}`);
+
+      // Proveri da li su datumi validni
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        setMessage({ type: "danger", text: "Neispravan datum ili vreme" });
+        setLoading(false);
+        return;
+      }
 
       const payload = {
         hall: parseInt(selectedHall),
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: startDateTime.toISOString(), // ostaje ISO ali sad tačan lokalni
+        end: endDateTime.toISOString(),
       };
 
-      console.log("Kreiranje dostupnosti:", payload);
+      console.log("Sending availability:", payload);
 
       await api.post("/availabilities/create/", payload);
-
       await showSuccess("Dostupnost uspešno kreirana!");
-      setDate("");
-      setStartTime("");
-      setEndTime("");
+
+      // Resetuj formu
       setSelectedHall("");
+      setDate("");
+      setStartTime("08:00");
+      setEndTime("16:00");
+      setMessage({ type: "success", text: "Dostupnost uspešno kreirana!" });
+
+      // Osveži hale ako je prosleđena funkcija
+      if (refreshHalls) {
+        refreshHalls();
+      }
     } catch (err) {
-      console.error("Greška:", err.response?.data);
+      console.error("Error creating availability:", err);
       showApiError(err);
+      setMessage({ type: "danger", text: "Greška pri kreiranju dostupnosti" });
     } finally {
       setLoading(false);
     }
@@ -120,6 +146,7 @@ function OwnerAvailability() {
                       onChange={(e) => setDate(e.target.value)}
                       required
                       size="lg"
+                      min={new Date().toISOString().split("T")[0]} // Samo budući datumi
                     />
                   </Form.Group>
 

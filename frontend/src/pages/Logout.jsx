@@ -9,8 +9,7 @@ export default function Logout() {
   useEffect(() => {
     const performLogout = async () => {
       logout();
-      // UKLANJAMO showSuccess - samo redirect
-      // await showSuccess('Uspešno ste se odjavili!');
+
       navigate("/login", { replace: true });
     };
 

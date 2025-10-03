@@ -54,24 +54,17 @@ function Form({ route, method, onSuccess, onError }) {
           refresh: res.data.refresh,
         });
 
-        // UKLANJAMO showSuccess - samo redirect
-        // await showSuccess('Uspešno ste se prijavili!');
-
-        // redirect according to role
         if (u && u.role === "owner") {
           navigate("/owner", { replace: true });
         } else {
           navigate("/", { replace: true });
         }
       } else {
-        // UKLANJAMO showSuccess za registraciju - samo redirect
-        // await showSuccess("Registracija uspešna! Sada se možete prijaviti.");
         navigate("/login", { replace: true });
       }
     } catch (err) {
       console.error(err);
 
-      // OSTAJE SAMO ZA GREŠKE
       if (method === "login") {
         await showLoginError(err);
       } else {

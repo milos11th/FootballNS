@@ -17,3 +17,72 @@ span,
 li {
   font-family: "Roboto", sans-serif;
 }
+/* SweetAlert2 notifikacije */
+.notification-popup {
+  border-left: 4px solid #17a2b8 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Notification bell hover efekat */
+.notification-bell:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* Dropdown notifikacija */
+.notification-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.notification-badge {
+  font-size: 0.6rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+/* Owner notifikacije - plava tema */
+.owner-notification {
+  border-left: 4px solid #2196f3 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* User notifikacije - zelena tema (odobreno) */
+.user-notification-approved {
+  border-left: 4px solid #4caf50 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* User notifikacije - crvena tema (odbijeno) */
+.user-notification-rejected {
+  border-left: 4px solid #f44336 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3) !important;
+}
+
+/* SweetAlert2 toast animacije */
+.swal2-toast {
+  animation: slideInRight 0.5s ease-out !important;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

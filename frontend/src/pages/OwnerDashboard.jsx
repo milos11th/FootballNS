@@ -6,6 +6,7 @@ import OwnerHalls from "./OwnerHalls";
 import OwnerAvailability from "./OwnerAvailability";
 import OwnerAppointments from "./OwnerAppointments";
 import OwnerAvailabilityList from "./OwnerAvailabilityList";
+import OwnerAppointmentHistory from "./OwnerAppointmentHistory"; // ← DODAJ OVO
 import { Tabs, Tab, Container, Alert, Spinner } from "react-bootstrap";
 import "../styles/OwnerDashboard.css";
 
@@ -70,7 +71,7 @@ export default function OwnerDashboard() {
         onSelect={(tab) => setActiveTab(tab)}
         className="mb-4"
         justify
-        variant="pills" // Promeni na pills za mekši izgled
+        variant="pills"
       >
         <Tab eventKey="halls" title="📋 Moje Hale" className="border-0">
           <div className="mt-3">
@@ -91,11 +92,7 @@ export default function OwnerDashboard() {
           </div>
         </Tab>
 
-        <Tab
-          eventKey="availability"
-          title="➕ Kreiraj Dostupnost"
-          className="border-0"
-        >
+        <Tab eventKey="availability" title="➕ Dostupnost" className="border-0">
           <div className="mt-3">
             <OwnerAvailability myHalls={myHalls} refreshHalls={fetchMyHalls} />
           </div>
@@ -103,7 +100,7 @@ export default function OwnerDashboard() {
 
         <Tab
           eventKey="availability-list"
-          title="📊 Lista Dostupnosti"
+          title="📅 Lista Dostupnosti"
           className="border-0"
         >
           <div className="mt-3">
@@ -116,11 +113,18 @@ export default function OwnerDashboard() {
 
         <Tab
           eventKey="appointments"
-          title="📅 Rezervacije"
+          title="⏳ Rezervacije"
           className="border-0"
         >
           <div className="mt-3">
             <OwnerAppointments myHalls={myHalls} refreshHalls={fetchMyHalls} />
+          </div>
+        </Tab>
+
+        {/* NOVI TAB - Istorija Rezervacija */}
+        <Tab eventKey="history" title="📊 Istorija" className="border-0">
+          <div className="mt-3">
+            <OwnerAppointmentHistory />
           </div>
         </Tab>
       </Tabs>

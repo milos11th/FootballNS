@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Navbar, Nav, Container } from "react-bootstrap";
 import { Link } from "react-router-dom";
@@ -18,7 +17,7 @@ function MyNavBar() {
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto">
             <Nav.Link as={Link} to="/">
-              Halls
+              Fudbalske Hale
             </Nav.Link>
 
             {!user && (
@@ -34,15 +33,27 @@ function MyNavBar() {
 
             {user && (
               <>
-                <Nav.Link as={Link} to="/logout">Logout</Nav.Link>
-
-                {/* If user is owner, show dashboard link */}
-                {user.role === "owner" && (
-                  <Nav.Link as={Link} to="/owner">Owner Dashboard</Nav.Link>
+                {/* Za regular usere - Moje Rezervacije */}
+                {user.role === "player" && (
+                  <Nav.Link as={Link} to="/my-appointments">
+                    📋 Moje Rezervacije
+                  </Nav.Link>
                 )}
 
-             
-                <Nav.Item style={{ color: "#fff", marginLeft: 12, alignSelf: "center" }}>
+                {/* Za ownere - Kontrolna Tabla */}
+                {user.role === "owner" && (
+                  <Nav.Link as={Link} to="/owner">
+                    Kontrolna Tabla
+                  </Nav.Link>
+                )}
+
+                <Nav.Link as={Link} to="/logout">
+                  Odjavi se
+                </Nav.Link>
+
+                <Nav.Item
+                  style={{ color: "#fff", marginLeft: 12, alignSelf: "center" }}
+                >
                   {user.username}
                 </Nav.Item>
               </>
