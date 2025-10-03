@@ -221,3 +221,127 @@
     background-size: 20px 20px;
   }
 }
+/* HallDetail.css - Dodaj ove stilove */
+
+.hall-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.hall-slot-button {
+  padding: 12px 8px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.hall-slot-button:hover {
+  background-color: #e9ecef;
+  border-color: #6c757d;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hall-slot-button.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  font-weight: 600;
+}
+
+.hall-slot-button:disabled {
+  background-color: #6c757d;
+  color: white;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.hall-slot-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Loading state */
+.loading-slots {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+}
+
+.loading-text {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+/* No slots state */
+.no-slots {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 15px 0;
+}
+
+.no-slots-text {
+  color: #6c757d;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Book button */
+.book-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.book-button:hover:not(.disabled) {
+  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.book-button.disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.book-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .hall-slots {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+  }
+
+  .hall-slot-button {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+}

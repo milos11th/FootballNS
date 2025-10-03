@@ -45,10 +45,16 @@ function HallDetail() {
     };
   }, [id]);
 
-  // fetch free slots for selected date
   useEffect(() => {
     setLoadingSlots(true);
-    const dateStr = selectedDate.toISOString().split("T")[0];
+
+    // Napravi lokalni YYYY-MM-DD umesto UTC iz toISOString()
+    const localDate = new Date(selectedDate);
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, "0");
+    const day = String(localDate.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`; // npr. "2025-10-03"
+
     api
       .get(`/halls/${id}/free/?date=${dateStr}`)
       .then((res) => {
@@ -229,6 +235,7 @@ function HallDetail() {
                   <div className="hall-slots">
                     {freeSlots.map((slot) => {
                       const isSelected = slot.start === selectedSlotStart;
+                      const localTime = new Date(slot.start); // backend šalje UTC, JS sam prebaci u lokalno
                       return (
                         <button
                           key={slot.start}
@@ -237,7 +244,7 @@ function HallDetail() {
                             isSelected ? "selected" : ""
                           }`}
                         >
-                          {new Date(slot.start).toLocaleTimeString([], {
+                          {localTime.toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}

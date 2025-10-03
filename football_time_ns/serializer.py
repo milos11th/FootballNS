@@ -124,8 +124,8 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
 
 
 class AvailabilitySerializer(serializers.ModelSerializer):
-    hall_name = serializers.ReadOnlyField(source='hall.name')  # DODAJ OVO
+    hall_name = serializers.ReadOnlyField(source='hall.name')  
     
     class Meta:
         model = Availability
-        fields = ['id', 'hall', 'hall_name', 'start', 'end']  # DODAJ hall_name
+        fields = ['id', 'hall', 'hall_name', 'start', 'end']  
