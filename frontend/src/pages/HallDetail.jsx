@@ -136,25 +136,24 @@ function HallDetail() {
 
   return (
     <div className="hall-detail-container">
-      {/* Hall Header with basic info */}
+      {/* Hall Header with basic info - BEZ DESKRIPCIJE OVDE */}
       <div className="hall-header">
         <h1 className="hall-title">{hall.name}</h1>
         <div className="hall-badges">
           <Badge className="address-badge">📍 {hall.address}</Badge>
           <Badge className="price-badge">💰 {hall.price} RSD/sat</Badge>
         </div>
-        {hall.description && (
-          <Card className="description-card">
-            <Card.Body>
-              <h5 className="description-title">📝 Opis:</h5>
-              <p className="hall-description">{hall.description}</p>
-            </Card.Body>
-          </Card>
-        )}
       </div>
 
+      {hall.description && (
+        <div className="hall-description-block">
+          <h5 className="description-title">📝 Opis</h5>
+          <p className="hall-description">{hall.description}</p>
+        </div>
+      )}
+
       <div className="hall-detail-flex">
-        {/* Left column - Images */}
+        {/* Left column - Images + Deskripcija */}
         <div className="hall-left">
           {fullImages.length === 0 ? (
             <div className="hall-placeholder">
@@ -204,7 +203,6 @@ function HallDetail() {
           )}
         </div>
 
-        {/* Right column - Calendar & Booking */}
         <div className="hall-right">
           <Card className="booking-card">
             <Card.Body>

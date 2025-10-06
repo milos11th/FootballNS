@@ -86,3 +86,21 @@ li {
     opacity: 1;
   }
 }
+.navbar-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.navbar-logo:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .navbar-logo {
+    height: 35px;
+  }
+}

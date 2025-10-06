@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AvailabilityDelete, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, RegisterView, MeView,
+    AvailabilityDelete, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
     OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView
@@ -35,5 +35,7 @@ urlpatterns = [
     path('appointments/<int:pk>/checkin/', AppointmentCheckIn.as_view(), name='appointment_checkin'),
     path('appointments/<int:pk>/delete/', AppointmentDelete.as_view(), name='appointment_delete'),
     path('owner/appointments/', OwnerAllAppointments.as_view(), name='owner_all_appointments'),
+    path('owner/export-pdf/', OwnerExportPDF.as_view(), name='owner_export_pdf'),
+    path('owner/monthly-stats/', OwnerMonthlyStats.as_view(), name='owner_monthly_stats'),
 ]
     
