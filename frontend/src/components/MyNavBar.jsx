@@ -1,5 +1,5 @@
 import React from "react";
-import { Navbar, Nav, Container } from "react-bootstrap";
+import { Navbar, Nav, Container, Image } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -9,7 +9,12 @@ function MyNavBar() {
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
-        <Navbar.Brand as={Link} to="/">
+        <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+          <Image
+            src="/logo.png"
+            alt="FootballTimes Logo"
+            className="navbar-logo me-2"
+          />
           FootballTimeNs
         </Navbar.Brand>
 

@@ -41,67 +41,52 @@
   border: none !important;
 }
 
-.description-card {
-  border: none !important;
-  background-color: #f8f9fa !important;
-  border-radius: 12px !important;
-}
-
-.description-title {
-  color: #007bff !important;
-  margin-bottom: 12px !important;
-}
-
-.hall-description {
-  line-height: 1.6;
-  font-size: 1rem;
-  color: #495057;
-  margin-bottom: 0 !important;
-}
-
 .hall-detail-flex {
   display: flex;
   gap: 30px;
   align-items: flex-start;
 }
 
-/* Left column (slike) */
+/* Left column (slike + deskripcija) */
 .hall-left {
   flex: 0 0 65%;
   max-width: 65%;
-}
-
-.hall-main-image img {
-  width: 100%;
-  height: 400px;
-  object-fit: cover;
-  border-radius: 12px;
-  display: block;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.hall-placeholder {
-  width: 100%;
-  height: 300px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-  border-radius: 12px;
-  border: 2px dashed #dee2e6;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.placeholder-content {
-  text-align: center;
+/* DESKRIPCIJA - JEDNOSTAVNO BEZ OGRANIČENJA */
+.description-card {
+  border: none !important;
+  background-color: #f8f9fa !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
 }
 
-.placeholder-icon {
-  font-size: 3rem;
-  margin-bottom: 10px;
+.description-title {
+  color: #007bff !important;
+  margin-bottom: 12px !important;
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
 }
 
-/* Carousel - POPRAVLJENO */
+.hall-description {
+  line-height: 1.7;
+  font-size: 1rem;
+  color: #495057;
+  margin-bottom: 0 !important;
+  white-space: pre-line;
+  word-break: break-word;
+  min-height: 200px;
+  max-height: 300px;
+}
+
+.hall-right {
+  flex: 0 0 35%;
+  max-width: 35%;
+}
+
 .hall-carousel {
   position: relative;
   width: 100%;
@@ -109,7 +94,7 @@
 
 .carousel-image {
   width: 100%;
-  height: 400px;
+  height: 350px;
   object-fit: cover;
   border-radius: 12px;
 }
@@ -173,12 +158,42 @@
   border-color: #007bff;
 }
 
-/* ... ostali CSS ostaje isti ... */
+.thumbnails-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-start;
+}
 
-/* Responsiveness */
+.thumbnail-image {
+  width: 70px;
+  height: 55px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.thumbnail-image:hover {
+  transform: scale(1.05);
+  border-color: #007bff;
+}
+
+.thumbnail-active {
+  border-color: #007bff !important;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+  .thumbnail-image {
+    width: 60px;
+    height: 50px;
+  }
+}
+
 @media (max-width: 900px) {
-  /* ... ostali responsive stilovi ... */
-
   /* Carousel controls za mobile */
   .hall-carousel .carousel-control-prev,
   .hall-carousel .carousel-control-next {

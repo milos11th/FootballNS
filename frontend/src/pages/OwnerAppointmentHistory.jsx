@@ -15,8 +15,9 @@ import { showApiError } from "../utils/sweetAlert";
 function OwnerAppointmentHistory() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, approved, pending, rejected, cancelled
+  const [filter, setFilter] = useState("all"); // all, approved, pending, rejected
   const [dateFilter, setDateFilter] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchAllAppointments();
@@ -38,6 +39,33 @@ function OwnerAppointmentHistory() {
       showApiError(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExporting(true);
+    try {
+      const response = await api.get("/owner/export-pdf/", {
+        responseType: "blob",
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `rezervacije_${new Date().toISOString().split("T")[0]}.pdf`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert("Greška pri izvozu PDF-a");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -118,12 +146,29 @@ function OwnerAppointmentHistory() {
             Pregled svih rezervacija za vaše hale
           </p>
         </div>
-        <Badge bg="primary" className="fs-6">
-          Ukupno: {stats.total}
-        </Badge>
+        <div className="d-flex align-items-center gap-2">
+          <Badge bg="primary" className="fs-6">
+            Ukupno: {stats.total}
+          </Badge>
+          {/* DODAJ PDF DUGME */}
+          <Button
+            variant="success"
+            onClick={handleExportPDF}
+            disabled={exporting || appointments.length === 0}
+            className="d-flex align-items-center"
+          >
+            {exporting ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Izvoz...
+              </>
+            ) : (
+              <>📄 Izvezi PDF</>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Statistika */}
       <Row className="mb-4">
         <Col md={3} sm={6}>
           <Card className="border-0 bg-success bg-opacity-10">
@@ -159,7 +204,7 @@ function OwnerAppointmentHistory() {
         </Col>
       </Row>
 
-      {/* Filteri */}
+      {/* Filteri - OSTAJE ISTO */}
       <Card className="mb-4">
         <Card.Body>
           <Row className="g-3">
@@ -206,7 +251,6 @@ function OwnerAppointmentHistory() {
         </Card.Body>
       </Card>
 
-      {/* Lista rezervacija */}
       {filteredAppointments.length === 0 ? (
         <Alert variant="info">
           📭 Nema rezervacija za prikaz sa trenutnim filterima.
@@ -279,7 +323,6 @@ function OwnerAppointmentHistory() {
         </Row>
       )}
 
-      {/* Refresh dugme */}
       <div className="text-center mt-4">
         <Button variant="outline-primary" onClick={fetchAllAppointments}>
           🔄 Osveži Istoriju

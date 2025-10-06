@@ -6,9 +6,10 @@ import OwnerHalls from "./OwnerHalls";
 import OwnerAvailability from "./OwnerAvailability";
 import OwnerAppointments from "./OwnerAppointments";
 import OwnerAvailabilityList from "./OwnerAvailabilityList";
-import OwnerAppointmentHistory from "./OwnerAppointmentHistory"; // ← DODAJ OVO
+import OwnerAppointmentHistory from "./OwnerAppointmentHistory";
 import { Tabs, Tab, Container, Alert, Spinner } from "react-bootstrap";
 import "../styles/OwnerDashboard.css";
+import OwnerMonthlyReports from "../components/OwnerMonthlyReports";
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -121,10 +122,14 @@ export default function OwnerDashboard() {
           </div>
         </Tab>
 
-        {/* NOVI TAB - Istorija Rezervacija */}
         <Tab eventKey="history" title="📊 Istorija" className="border-0">
           <div className="mt-3">
             <OwnerAppointmentHistory />
+          </div>
+        </Tab>
+        <Tab eventKey="reports" title="📈 Izveštaji" className="border-0">
+          <div className="mt-3">
+            <OwnerMonthlyReports />
           </div>
         </Tab>
       </Tabs>

@@ -8,13 +8,23 @@ from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django.db import transaction
 from datetime import timedelta, datetime,time
-
+from django.http import HttpResponse
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import mm
+from datetime import datetime
+import io
 from .models import Hall, Appointment, Availability, HallImage
 from .serializer import (
     HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
+from football_time_ns import models
+from django.db.models import Count 
 
 # Hall list - read only
 class HallList(APIView):
@@ -440,3 +450,188 @@ class OwnerAllAppointments(APIView):
         
         serializer = AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
+    
+
+
+class OwnerExportPDF(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def get(self, request):
+        # Get reservations for owner's halls
+        halls = Hall.objects.filter(owner=request.user)
+        appointments = Appointment.objects.filter(
+            hall__in=halls
+        ).select_related('hall', 'user').order_by('-start')
+        
+        # Create PDF
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+        
+        # Header
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, height - 50, "Izveštaj o rezervacijama")
+        p.setFont("Helvetica", 12)
+        p.drawString(50, height - 70, f"Datum izveštaja: {datetime.now().strftime('%d.%m.%Y. %H:%M')}")
+        p.drawString(50, height - 85, f"Vlasnik: {request.user.username}")
+        p.drawString(50, height - 100, f"Ukupno hala: {halls.count()}")
+        
+        y_position = height - 130
+        
+        # Table data
+        data = [['Hala', 'Korisnik', 'Datum', 'Vreme', 'Status', 'Cena']]
+        
+        total_price = 0
+        status_counts = {'approved': 0, 'pending': 0, 'rejected': 0, 'cancelled': 0}
+        
+        for appointment in appointments:
+            date_str = appointment.start.strftime('%d.%m.%Y.')
+            time_str = f"{appointment.start.strftime('%H:%M')} - {appointment.end.strftime('%H:%M')}"
+            price = appointment.hall.price
+            
+            data.append([
+                appointment.hall.name,
+                appointment.user.username,
+                date_str,
+                time_str,
+                appointment.status,
+                f"{price} RSD"
+            ])
+            
+            if appointment.status == 'approved':
+                total_price += price
+            status_counts[appointment.status] += 1
+        
+        # Create table
+        table = Table(data, colWidths=[80, 70, 60, 80, 50, 50])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#dee2e6'))
+        ]))
+        
+        # Draw table
+        table.wrapOn(p, width - 100, height)
+        table.drawOn(p, 50, y_position - len(appointments) * 15 - 50)
+        
+        # Statistics
+        y_stats = y_position - len(appointments) * 15 - 80
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(50, y_stats, "Statistika:")
+        p.setFont("Helvetica", 9)
+        
+        stats = [
+            f"Odobrene: {status_counts['approved']}",
+            f"Na čekanju: {status_counts['pending']}",
+            f"Odbijene: {status_counts['rejected']}",
+            f"Otkazane: {status_counts['cancelled']}",
+            f"Ukupna vrednost (odobrene): {total_price} RSD"
+        ]
+        
+        for i, stat in enumerate(stats):
+            p.drawString(50, y_stats - 20 - (i * 15), stat)
+        
+        p.showPage()
+        p.save()
+        
+        buffer.seek(0)
+        
+        # Create response with filename
+        filename = f"rezervacije_{request.user.username}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
+    
+
+
+class OwnerMonthlyStats(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+
+    def get(self, request):
+        year = request.query_params.get('year', datetime.now().year)
+        
+        try:
+            year = int(year)
+        except ValueError:
+            return Response({'error': 'Invalid year'}, status=400)
+
+        # Get owner's halls
+        halls = Hall.objects.filter(owner=request.user)
+        
+        # Initialize monthly data
+        months = [
+            'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
+            'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
+        ]
+        
+        monthly_stats = []
+        
+        for month in range(1, 13):
+            # Date range for the month
+            month_start = datetime(year, month, 1)
+            if month == 12:
+                month_end = datetime(year + 1, 1, 1)
+            else:
+                month_end = datetime(year, month + 1, 1)
+            
+            # Convert to timezone
+            tz = pytz.timezone("Europe/Belgrade")
+            month_start = tz.localize(month_start)
+            month_end = tz.localize(month_end)
+            
+            # Get appointments for this month
+            appointments = Appointment.objects.filter(
+                hall__in=halls,
+                start__gte=month_start,
+                start__lt=month_end
+            )
+            
+            # Calculate stats
+            total_reservations = appointments.count()
+            approved_reservations = appointments.filter(status='approved').count()
+            
+            # Calculate revenue (only approved reservations)
+            revenue = sum(
+                float(appointment.hall.price)
+                for appointment in appointments.filter(status='approved')
+            )
+            
+            # Find most popular hall for this month
+            hall_stats = appointments.values('hall__name').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            most_popular_hall = hall_stats[0]['hall__name'] if hall_stats else "Nema rezervacija"
+            
+            monthly_stats.append({
+                'month': months[month - 1],
+                'month_number': month,
+                'total_reservations': total_reservations,
+                'approved_reservations': approved_reservations,
+                'revenue': revenue,
+                'most_popular_hall': most_popular_hall,
+                'pending_reservations': appointments.filter(status='pending').count(),
+                'completion_rate': (approved_reservations / total_reservations * 100) if total_reservations > 0 else 0
+            })
+        
+        # Yearly totals
+        yearly_totals = {
+            'total_reservations': sum(stat['total_reservations'] for stat in monthly_stats),
+            'approved_reservations': sum(stat['approved_reservations'] for stat in monthly_stats),
+            'total_revenue': sum(stat['revenue'] for stat in monthly_stats),
+            'average_completion_rate': sum(stat['completion_rate'] for stat in monthly_stats) / 12
+        }
+        
+        return Response({
+            'year': year,
+            'monthly_stats': monthly_stats,
+            'yearly_totals': yearly_totals
+        })
