@@ -23,7 +23,7 @@ from .serializer import (
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
-from football_time_ns import models
+
 from django.db.models import Count 
 
 # Hall list - read only

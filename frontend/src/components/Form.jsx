@@ -13,7 +13,7 @@ function Form({ route, method, onSuccess, onError }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState(null);
+  const [errors, setErrors] = useState({}); // Promenjeno u objekat
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -22,11 +22,11 @@ function Form({ route, method, onSuccess, onError }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrors(null);
+    setErrors({}); // Resetuj greške
 
     // Validacija za registraciju
     if (method === "register" && password !== password2) {
-      await showError("Lozinke se ne poklapaju!");
+      setErrors({ password: ["Lozinke se ne poklapaju!"] });
       setLoading(false);
       return;
     }
@@ -68,65 +68,115 @@ function Form({ route, method, onSuccess, onError }) {
       if (method === "login") {
         await showLoginError(err);
       } else {
-        await showApiError(err);
+        // Umesto showApiError, prikaži greške pored polja
+        if (err.response?.data) {
+          setErrors(err.response.data);
+
+          // Opciono: prikaži samo globalne greške u popup-u
+          const globalErrors = err.response.data.non_field_errors;
+          if (globalErrors && globalErrors.length > 0) {
+            await showError(globalErrors.join("\n"));
+          }
+        } else {
+          await showApiError(err);
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // Funkcija za prikaz grešaka za određeno polje
+  const renderFieldError = (fieldName) => {
+    if (errors[fieldName]) {
+      return (
+        <div className="error-message">
+          {Array.isArray(errors[fieldName])
+            ? errors[fieldName].join(", ")
+            : errors[fieldName]}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <form onSubmit={handleSubmit} className="form-container">
       <h1>{method === "login" ? "Prijava" : "Registracija"}</h1>
 
-      <input
-        className="form-input"
-        type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Korisničko ime"
-        required
-      />
-      <input
-        className="form-input"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Lozinka"
-        required
-      />
+      <div className="input-group">
+        <input
+          className={`form-input ${errors.username ? "error" : ""}`}
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Korisničko ime"
+          required
+        />
+        {renderFieldError("username")}
+      </div>
+
+      <div className="input-group">
+        <input
+          className={`form-input ${errors.password ? "error" : ""}`}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Lozinka"
+          required
+        />
+        {renderFieldError("password")}
+      </div>
 
       {method !== "login" && (
         <>
-          <input
-            className="form-input"
-            type="password"
-            value={password2}
-            onChange={(e) => setPassword2(e.target.value)}
-            placeholder="Potvrdi lozinku"
-            required
-          />
-          <input
-            className="form-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email (opciono)"
-          />
-          <input
-            className="form-input"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Ime (opciono)"
-          />
-          <input
-            className="form-input"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Prezime (opciono)"
-          />
+          <div className="input-group">
+            <input
+              className={`form-input ${errors.password2 ? "error" : ""}`}
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              placeholder="Potvrdi lozinku"
+              required
+            />
+            {renderFieldError("password2")}
+          </div>
+
+          <div className="input-group">
+            <input
+              className={`form-input ${errors.email ? "error" : ""}`}
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+            />
+            {renderFieldError("email")}
+          </div>
+
+          <div className="input-group">
+            <input
+              className={`form-input ${errors.first_name ? "error" : ""}`}
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Ime"
+              required
+            />
+            {renderFieldError("first_name")}
+          </div>
+
+          <div className="input-group">
+            <input
+              className={`form-input ${errors.last_name ? "error" : ""}`}
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Prezime"
+              required
+            />
+            {renderFieldError("last_name")}
+          </div>
         </>
       )}
 
