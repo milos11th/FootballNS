@@ -1,4 +1,4 @@
-# backend app: serializer.py (ili serializers.py — koristi ime koje već imaš)
+
 from datetime import datetime
 from rest_framework import serializers
 from django.contrib.auth.models import User
@@ -52,6 +52,9 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
     password2 = serializers.CharField(write_only=True, required=True)
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
 
     class Meta:
         model = User
@@ -60,15 +63,23 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password":"Passwords must match."})
+        
+        # Provera da li email već postoji
+        if User.objects.filter(email=attrs['email']).exists():
+            raise serializers.ValidationError({"email":"User with this email already exists."})
+            
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2', None)
+        # Izbaci password2 iz validated_data pre nego što kreiraš usera
+        password2 = validated_data.pop('password2', None)
         password = validated_data.pop('password')
+        
+        # Kreiraj usera sa preostalim podacima
         user = User(**validated_data)
         user.set_password(password)
         user.save()
-        # Signal kreira profile
+        
         return user
 
 class AvailabilitySerializer(serializers.ModelSerializer):
@@ -123,9 +134,3 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         fields = ['id','hall','start','end']
 
 
-class AvailabilitySerializer(serializers.ModelSerializer):
-    hall_name = serializers.ReadOnlyField(source='hall.name')  
-    
-    class Meta:
-        model = Availability
-        fields = ['id', 'hall', 'hall_name', 'start', 'end']  
