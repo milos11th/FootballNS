@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AvailabilityDelete, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, RegisterView, MeView,
+    AvailabilityDelete, ChangePasswordView, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
     OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView
@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/me/', MeView.as_view(), name='me'),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # appointments
     path('appointments/', AppointmentList.as_view(), name='appointment_list'),

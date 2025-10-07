@@ -19,12 +19,18 @@ from datetime import datetime
 import io
 from .models import Hall, Appointment, Availability, HallImage
 from .serializer import (
-    HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
+    ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
-
+from django.contrib.auth import update_session_auth_hash
 from django.db.models import Count 
+from rest_framework.decorators import api_view
+
+
+
+
+
 
 # Hall list - read only
 class HallList(APIView):
@@ -635,3 +641,30 @@ class OwnerMonthlyStats(APIView):
             'monthly_stats': monthly_stats,
             'yearly_totals': yearly_totals
         })
+    
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        serializer = ChangePasswordSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            # Proveri staru šifru
+            if not user.check_password(serializer.validated_data['old_password']):
+                return Response(
+                    {'old_password': ['Pogrešna trenutna šifra.']}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Postavi novu šifru
+            user.set_password(serializer.validated_data['new_password'])
+            user.save()
+            
+            # Update session auth hash da se ne bi logout-ovao
+            update_session_auth_hash(request, user)
+            
+            return Response({'message': 'Šifra je uspešno promenjena.'}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

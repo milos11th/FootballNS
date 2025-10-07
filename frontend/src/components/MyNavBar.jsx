@@ -24,6 +24,9 @@ function MyNavBar() {
             <Nav.Link as={Link} to="/">
               Fudbalske Hale
             </Nav.Link>
+            <Link to="/change-password" className="nav-link">
+              Promeni Šifru
+            </Link>
 
             {!user && (
               <>
@@ -38,7 +41,6 @@ function MyNavBar() {
 
             {user && (
               <>
-                {/* Za regular usere - Moje Rezervacije */}
                 {user.role === "player" && (
                   <Nav.Link as={Link} to="/my-appointments">
                     📋 Moje Rezervacije

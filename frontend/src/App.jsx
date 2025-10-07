@@ -15,6 +15,7 @@ import RequireAuth from "./components/RequireAuth";
 import RequireOwner from "./components/RequireOwner";
 import Logout from "./pages/Logout";
 import "../src/styles/index.css";
+import ChangePassword from "./components/ChangePassword";
 
 function App() {
   return (
@@ -29,6 +30,16 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/logout" element={<Logout />} />
+
+                {/* ZAŠTIĆENE RUTE */}
+                <Route
+                  path="/change-password"
+                  element={
+                    <RequireAuth>
+                      <ChangePassword />
+                    </RequireAuth>
+                  }
+                />
                 <Route
                   path="/halls/:id"
                   element={

@@ -26,10 +26,9 @@ function UserDashboard() {
   const fetchMyAppointments = async () => {
     try {
       setLoading(true);
-      // Koristimo postojeći endpoint za listu appointmenta sa filterom
+
       const res = await api.get("/appointments/");
 
-      // Filtriranje na frontendu - samo appointmenti trenutnog korisnika
       const myAppointments = res.data.filter(
         (app) => app.user === user.username
       );
