@@ -1,0 +1,1 @@
+default_app_config = 'football_time_ns.apps.FootballTimeNsConfig'

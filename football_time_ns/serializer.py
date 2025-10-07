@@ -83,16 +83,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class AvailabilitySerializer(serializers.ModelSerializer):
+    hall_name = serializers.ReadOnlyField(source='hall.name')  
+    
     class Meta:
         model = Availability
-        fields = ['id','hall','start','end']
+        fields = ['id', 'hall', 'hall_name', 'start', 'end']  
 
     def validate(self, attrs):
         tz = pytz.timezone("Europe/Belgrade")
         start = attrs['start']
         end = attrs['end']
 
-        print("=== DEBUG BACKEND AVAILABILITY ===")
         print(f"Received - Start: {start} (type: {type(start)})")
         print(f"Received - End: {end} (type: {type(end)})")
 
@@ -118,7 +119,7 @@ class AvailabilitySerializer(serializers.ModelSerializer):
         if attrs['start'] >= attrs['end']:
             raise serializers.ValidationError("Start must be before end")
         return attrs
-
+    
 class AppointmentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
     hall_name = serializers.ReadOnlyField(source='hall.name')
@@ -134,3 +135,21 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         fields = ['id','hall','start','end']
 
 
+
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True, min_length=6)
+    new_password2 = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['new_password2']:
+            raise serializers.ValidationError({"new_password": "Nove šifre se ne poklapaju."})
+        return attrs
+
+    def validate_new_password(self, value):
+        # Možeš dodati dodatne validacije za šifru
+        if len(value) < 6:
+            raise serializers.ValidationError("Šifra mora imati najmanje 6 karaktera.")
+        return value
