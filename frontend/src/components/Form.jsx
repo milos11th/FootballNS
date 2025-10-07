@@ -3,7 +3,12 @@ import api from "../api";
 import { useNavigate } from "react-router-dom";
 import "../styles/Form.css";
 import { useAuth } from "../contexts/AuthContext";
-import { showError, showApiError, showLoginError } from "../utils/sweetAlert";
+import {
+  showError,
+  showApiError,
+  showLoginError,
+  showSuccess,
+} from "../utils/sweetAlert";
 
 function Form({ route, method, onSuccess, onError }) {
   const [username, setUsername] = useState("");
@@ -22,9 +27,8 @@ function Form({ route, method, onSuccess, onError }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrors({}); // Resetuj greške
+    setErrors({});
 
-    // Validacija za registraciju
     if (method === "register" && password !== password2) {
       setErrors({ password: ["Lozinke se ne poklapaju!"] });
       setLoading(false);
@@ -60,6 +64,12 @@ function Form({ route, method, onSuccess, onError }) {
           navigate("/", { replace: true });
         }
       } else {
+        // REGISTRACIJA USPELA - PRIKAZI OBAVESTENJE
+        await showSuccess(
+          "Prvi korak registracije je uspesan! 📧",
+          "Proverite svoj email da biste verifikovali nalog. Link za verifikaciju je poslat na vašu email adresu.",
+          6000
+        );
         navigate("/login", { replace: true });
       }
     } catch (err) {
@@ -68,11 +78,8 @@ function Form({ route, method, onSuccess, onError }) {
       if (method === "login") {
         await showLoginError(err);
       } else {
-        // Umesto showApiError, prikaži greške pored polja
         if (err.response?.data) {
           setErrors(err.response.data);
-
-          // Opciono: prikaži samo globalne greške u popup-u
           const globalErrors = err.response.data.non_field_errors;
           if (globalErrors && globalErrors.length > 0) {
             await showError(globalErrors.join("\n"));

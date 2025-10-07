@@ -1,9 +1,9 @@
 from django.urls import path
 from .views import (
-    AvailabilityDelete, ChangePasswordView, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, RegisterView, MeView,
+    AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
-    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView
+    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView, VerifyEmailView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -21,12 +21,13 @@ urlpatterns = [
     path('halls/<int:hall_id>/free/', HallFreeSlots.as_view(), name='hall_free_slots'),
     path('availabilities/<int:pk>/', AvailabilityDelete.as_view(), name='availability_delete'),
 
-    # auth
+   # auth routes
     path('api/register/', RegisterView.as_view(), name='register'),
     path('api/me/', MeView.as_view(), name='me'),
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),  # PROMENJENO
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('verify-email/<str:token>/', VerifyEmailView.as_view(), name='verify-email'),
 
     # appointments
     path('appointments/', AppointmentList.as_view(), name='appointment_list'),

@@ -17,7 +17,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 from datetime import datetime
 import io
-from .models import Hall, Appointment, Availability, HallImage
+from .models import Hall, Appointment, Availability, HallImage,Profile
 from .serializer import (
     ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
@@ -26,7 +26,12 @@ from .permissions import IsOwnerRole
 from django.contrib.auth import update_session_auth_hash
 from django.db.models import Count 
 from rest_framework.decorators import api_view
+from django.shortcuts import redirect
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework import serializers
 
+from football_time_ns import serializer
 
 
 
@@ -54,12 +59,7 @@ class HallCreate(APIView):
 
 # Hall detail =
 class HallDetail(APIView):
-    """
-    Retrieve / update / delete a Hall.
-    - GET: AllowAny (svi mogu videti detalje hale)
-    - PUT, DELETE: zahteva autentifikaciju i owner role
-    """
-
+    
     def get_hall_by_pk(self, pk):
         try:
             return Hall.objects.get(pk=pk)
@@ -668,3 +668,48 @@ class ChangePasswordView(APIView):
             return Response({'message': 'Šifra je uspešno promenjena.'}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, token):
+        try:
+            profile = Profile.objects.get(verification_token=token)
+            
+            if profile.email_verified:
+                # Redirect na login sa porukom
+                frontend_url = "http://localhost:3000/login?message=email_already_verified"
+                return redirect(frontend_url)
+            
+            profile.email_verified = True
+            profile.verification_token = None
+            profile.save()
+            
+            user = profile.user
+            user.is_active = True
+            user.save()
+            
+            # Redirect na login sa porukom o uspehu
+            frontend_url = "http://localhost:3000/login?message=email_verified"
+            return redirect(frontend_url)
+            
+        except Profile.DoesNotExist:
+            return HttpResponse("Nevažeći verifikacioni link.", status=400)
+        
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Proveri da li je email verifikovan
+        if hasattr(self.user, 'profile') and not self.user.profile.email_verified:
+            raise serializers.ValidationError({
+                "error": "Molimo verifikujte svoj email pre prijave. Proverite svoj inbox."
+            })
+        
+        return data
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

@@ -16,6 +16,7 @@ import RequireOwner from "./components/RequireOwner";
 import Logout from "./pages/Logout";
 import "../src/styles/index.css";
 import ChangePassword from "./components/ChangePassword";
+import EmailVerified from "./components/EmailVerified";
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
                     </RequireAuth>
                   }
                 />
+                <Route path="/email-verified" element={<EmailVerified />} />
                 <Route
                   path="/owner"
                   element={

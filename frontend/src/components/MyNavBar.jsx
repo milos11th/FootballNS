@@ -24,30 +24,31 @@ function MyNavBar() {
             <Nav.Link as={Link} to="/">
               Fudbalske Hale
             </Nav.Link>
-            <Link to="/change-password" className="nav-link">
-              Promeni Šifru
-            </Link>
 
             {!user && (
               <>
                 <Nav.Link as={Link} to="/login">
-                  Login
+                  Prijavi se
                 </Nav.Link>
                 <Nav.Link as={Link} to="/register">
-                  Register
+                  Registruj se
                 </Nav.Link>
               </>
             )}
 
             {user && (
               <>
+                {/* PROMENI ŠIFRU - SAMO ZA ULOGOVANE */}
+                <Nav.Link as={Link} to="/change-password">
+                  🔐 Promeni Šifru
+                </Nav.Link>
+
                 {user.role === "player" && (
                   <Nav.Link as={Link} to="/my-appointments">
                     📋 Moje Rezervacije
                   </Nav.Link>
                 )}
 
-                {/* Za ownere - Kontrolna Tabla */}
                 {user.role === "owner" && (
                   <Nav.Link as={Link} to="/owner">
                     Kontrolna Tabla

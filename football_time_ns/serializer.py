@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from .models import Hall, Profile, Availability, Appointment, HallImage
 from django.utils.timezone import make_aware
 import pytz
+from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from django.conf import settings
 
 class HallImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
@@ -62,26 +65,78 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password":"Passwords must match."})
+            raise serializers.ValidationError({"password":"Lozinke se ne poklapaju."})
         
-        # Provera da li email već postoji
         if User.objects.filter(email=attrs['email']).exists():
-            raise serializers.ValidationError({"email":"User with this email already exists."})
+            raise serializers.ValidationError({"email":"Korisnik sa ovim email-om već postoji."})
             
         return attrs
 
     def create(self, validated_data):
-        # Izbaci password2 iz validated_data pre nego što kreiraš usera
-        password2 = validated_data.pop('password2', None)
+        validated_data.pop('password2', None)
         password = validated_data.pop('password')
-        
-        # Kreiraj usera sa preostalim podacima
         user = User(**validated_data)
         user.set_password(password)
+        user.is_active = False  # Korisnik neaktivan dok ne verifikuje email
         user.save()
+        
+        verification_token = get_random_string(50)
+        
+        # Proveri da li profile već postoji (kreirao ga signal)
+        try:
+            profile = user.profile
+            # Ako postoji, ažuriraj ga
+            profile.verification_token = verification_token
+            profile.save()
+        except Profile.DoesNotExist:
+            # Ako ne postoji, kreiraj novi
+            Profile.objects.create(
+                user=user, 
+                role='player',
+                email_verified=False,
+                verification_token=verification_token
+            )
+        
+        # Pošalji verifikacioni email
+        self.send_verification_email(user, verification_token)
         
         return user
 
+    def send_verification_email(self, user, token):
+        verification_url = f"http://localhost:8000/verify-email/{token}/"
+
+        print(f"🔧 DEBUG EMAIL SENDING:")
+        print(f"   To: {user.email}")
+        print(f"   From: {settings.EMAIL_HOST_USER}")
+        print(f"   URL: {verification_url}")
+        
+        subject = "Verifikujte svoj email - Football Time"
+        message = f"""
+Poštovani/poštovana {user.first_name} {user.last_name},
+
+Hvala Vam što ste se registrovali na Football Time!
+
+Da biste aktivirali svoj nalog, molimo Vas da kliknete na link ispod:
+
+{verification_url}
+
+Link će vas odvesti na stranicu gde će vaš nalog biti aktiviran.
+
+Ako niste kreirali nalog, ignorišite ovaj email.
+
+Srdačan pozdrav,
+Football Time Team
+"""
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        
 class AvailabilitySerializer(serializers.ModelSerializer):
     hall_name = serializers.ReadOnlyField(source='hall.name')  
     
