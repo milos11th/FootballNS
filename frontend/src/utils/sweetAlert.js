@@ -25,13 +25,15 @@ const errorTranslations = {
   "Bad request.": "Neispravan zahtev.",
 };
 
-export const showSuccess = (message) => {
+export const showSuccess = (title, text = "", timer = 5000) => {
   return Swal.fire({
     icon: "success",
-    title: "Uspeh!",
-    text: message,
-    timer: 2000,
-    showConfirmButton: false,
+    title: title,
+    text: text,
+    timer: timer,
+    showConfirmButton: true,
+    confirmButtonText: "OK",
+    confirmButtonColor: "#28a745",
   });
 };
 
