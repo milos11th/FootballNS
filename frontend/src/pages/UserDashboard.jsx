@@ -12,6 +12,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import api from "../api";
 import { showConfirm, showSuccess, showApiError } from "../utils/sweetAlert";
+import ReviewSection from "../components/ReviewSection";
 
 function UserDashboard() {
   const { user } = useAuth();
@@ -126,78 +127,82 @@ function UserDashboard() {
           </Card.Body>
         </Card>
       ) : (
-        <Row xs={1} className="g-4">
-          {appointments.map((appointment) => (
-            <Col key={appointment.id}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <h5 className="card-title mb-2">
-                        🏟️ {appointment.hall_name}
-                      </h5>
-                      <p className="text-muted mb-1">
-                        <strong>📅 Datum:</strong>{" "}
-                        {new Date(appointment.start).toLocaleDateString(
-                          "sr-RS"
-                        )}
-                      </p>
-                      <p className="text-muted mb-1">
-                        <strong>🕒 Vreme:</strong>{" "}
-                        {new Date(appointment.start).toLocaleTimeString(
-                          "sr-RS",
-                          {
+        <>
+          <Row xs={1} className="g-4">
+            {appointments.map((appointment) => (
+              <Col key={appointment.id}>
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-start mb-3">
+                      <div>
+                        <h5 className="card-title mb-2">
+                          🏟️ {appointment.hall_name}
+                        </h5>
+                        <p className="text-muted mb-1">
+                          <strong>📅 Datum:</strong>{" "}
+                          {new Date(appointment.start).toLocaleDateString(
+                            "sr-RS"
+                          )}
+                        </p>
+                        <p className="text-muted mb-1">
+                          <strong>🕒 Vreme:</strong>{" "}
+                          {new Date(appointment.start).toLocaleTimeString(
+                            "sr-RS",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}{" "}
+                          -{" "}
+                          {new Date(appointment.end).toLocaleTimeString("sr-RS", {
                             hour: "2-digit",
                             minute: "2-digit",
-                          }
-                        )}{" "}
-                        -{" "}
-                        {new Date(appointment.end).toLocaleTimeString("sr-RS", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                          })}
+                        </p>
+                      </div>
+
+                      <div className="text-end">
+                        <Badge
+                          bg={getStatusVariant(appointment.status)}
+                          className="mb-2"
+                          style={{ fontSize: "0.9rem" }}
+                        >
+                          {getStatusText(appointment.status)}
+                        </Badge>
+
+                        {appointment.checked_in && (
+                          <Badge bg="info" className="ms-1">
+                            ✅ Check-in
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-end">
-                      <Badge
-                        bg={getStatusVariant(appointment.status)}
-                        className="mb-2"
-                        style={{ fontSize: "0.9rem" }}
-                      >
-                        {getStatusText(appointment.status)}
-                      </Badge>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <small className="text-muted">
+                        Kreirano:{" "}
+                        {new Date(appointment.start).toLocaleString("sr-RS")}
+                      </small>
 
-                      {appointment.checked_in && (
-                        <Badge bg="info" className="ms-1">
-                          ✅ Check-in
-                        </Badge>
+                      {(appointment.status === "pending" ||
+                        appointment.status === "approved") && (
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleCancel(appointment.id)}
+                        >
+                          🗑️ Otkaži
+                        </Button>
                       )}
                     </div>
-                  </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
 
-                  <div className="d-flex justify-content-between align-items-center">
-                    <small className="text-muted">
-                      Kreirano:{" "}
-                      {new Date(appointment.start).toLocaleString("sr-RS")}
-                    </small>
-
-                    {(appointment.status === "pending" ||
-                      appointment.status === "approved") && (
-                      <Button
-                        variant="outline-danger"
-                        size="sm"
-                        onClick={() => handleCancel(appointment.id)}
-                      >
-                        🗑️ Otkaži
-                      </Button>
-                    )}
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+     
+        </>
       )}
     </Container>
   );

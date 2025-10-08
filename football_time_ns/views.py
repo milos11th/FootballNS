@@ -17,9 +17,9 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import mm
 from datetime import datetime
 import io
-from .models import Hall, Appointment, Availability, HallImage,Profile
+from .models import Hall, Appointment, Availability, HallImage,Profile, Review
 from .serializer import (
-    ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, UserSerializer,
+    ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, ReviewSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
@@ -713,3 +713,76 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+
+
+
+
+class ReviewCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        serializer = ReviewSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class HallReviewsView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request, hall_id):
+        reviews = Review.objects.filter(hall_id=hall_id).select_related('user')
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+class UserReviewsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        reviews = Review.objects.filter(user=request.user).select_related('hall', 'appointment')
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
+class UserReviewableAppointmentsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        # Vrati odobrene rezervacije koje user nije ocenio
+        reviewed_appointments = Review.objects.filter(user=request.user).values_list('appointment_id', flat=True)
+        appointments = Appointment.objects.filter(
+            user=request.user,
+            status='approved'
+        ).exclude(id__in=reviewed_appointments).select_related('hall')
+        
+        serializer = AppointmentSerializer(appointments, many=True)
+        return Response(serializer.data)
+    
+
+
+
+
+class OwnerReviewsView(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+    
+    def get(self, request):
+        owner_halls = Hall.objects.filter(owner=request.user)
+        reviews = Review.objects.filter(hall__in=owner_halls).select_related('user', 'hall').order_by('-created_at')
+        
+        # Vrati broj nepročitanih recenzija
+        unseen_count = reviews.filter(owner_seen=False).count()
+        
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response({
+            'reviews': serializer.data,
+            'unseen_count': unseen_count
+        })
+    
+    
+    def post(self, request):
+        
+        owner_halls = Hall.objects.filter(owner=request.user)
+        Review.objects.filter(hall__in=owner_halls, owner_seen=False).update(owner_seen=True)
+        
+        return Response({'message': 'Recenzije označene kao pročitane'})

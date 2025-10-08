@@ -67,3 +67,28 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.hall.name} | {self.user.username} | {self.start} - {self.end} ({self.status})"
+
+
+class Review(models.Model):
+    RATING_CHOICES = (
+        (1, '1 - Very Poor'),
+        (2, '2 - Poor'),
+        (3, '3 - Average'),
+        (4, '4 - Good'),
+        (5, '5 - Excellent'),
+    )
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    hall = models.ForeignKey(Hall, on_delete=models.CASCADE, related_name='reviews')
+    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, related_name='review')
+    rating = models.IntegerField(choices=RATING_CHOICES)
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    owner_seen = models.BooleanField(default=False) 
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'appointment']  
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.hall.name} - {self.rating}★"

@@ -160,8 +160,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # EMAIL_BACKEND
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'tomibre397@gmail.com'
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_APP_PASSWORD')  
-DEFAULT_FROM_EMAIL = 'tomibre397@gmail.com'  
+EMAIL_HOST_USER = 'tomibre397@gmail.com'  
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_APP_PASSWORD')
 
-EMAIL_DEBUG=True
+DEFAULT_FROM_EMAIL = 'noreply@footballtime.com'

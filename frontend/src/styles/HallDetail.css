@@ -5,40 +5,79 @@
   margin: 20px auto;
   padding: 20px;
   color: #222;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
 .hall-header {
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 20px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 25px;
   margin-bottom: 30px;
 }
 
 .hall-title {
-  margin-bottom: 12px;
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
 }
 
-.hall-badges {
+.hall-meta-info {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 20px;
   align-items: center;
-  margin-bottom: 20px;
 }
 
-.address-badge {
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: #6c757d !important;
+.hall-address,
+.hall-price-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #475569;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
-.price-badge {
+.hall-price-main {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+.address-icon,
+.price-icon {
+  font-size: 1.2rem;
+}
+
+.hall-description-block {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.description-title {
+  color: #1e293b;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.hall-description {
+  line-height: 1.7;
   font-size: 1rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(45deg, #28a745, #20c997) !important;
-  border: none !important;
+  color: #475569;
+  margin-bottom: 0;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .hall-detail-flex {
@@ -54,32 +93,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-/* DESKRIPCIJA - JEDNOSTAVNO BEZ OGRANIČENJA */
-.description-card {
-  border: none !important;
-  background-color: #f8f9fa !important;
-  border-radius: 12px !important;
-  padding: 20px !important;
-}
-
-.description-title {
-  color: #007bff !important;
-  margin-bottom: 12px !important;
-  font-size: 1.2rem !important;
-  font-weight: 600 !important;
-}
-
-.hall-description {
-  line-height: 1.7;
-  font-size: 1rem;
-  color: #495057;
-  margin-bottom: 0 !important;
-  white-space: pre-line;
-  word-break: break-word;
-  min-height: 200px;
-  max-height: 300px;
 }
 
 .hall-right {
@@ -99,12 +112,12 @@
   border-radius: 12px;
 }
 
-/* Carousel controls - SVETLIJE STRELICE */
+/* Carousel controls */
 .hall-carousel .carousel-control-prev,
 .hall-carousel .carousel-control-next {
   width: 50px;
   height: 50px;
-  background: rgba(255, 255, 255, 0.9) !important; /* Bela pozadina */
+  background: rgba(255, 255, 255, 0.9) !important;
   border-radius: 50%;
   top: 50%;
   transform: translateY(-50%);
@@ -130,16 +143,15 @@
   transform: translateY(-50%) scale(1.05);
 }
 
-/* Crne strelice za bolju vidljivost */
 .hall-carousel .carousel-control-prev-icon,
 .hall-carousel .carousel-control-next-icon {
   width: 25px;
   height: 25px;
   background-size: 25px 25px;
-  filter: invert(0%) !important; /* Crne strelice */
+  filter: invert(0%) !important;
 }
 
-/* Carousel indicators - takođe svetliji */
+/* Carousel indicators */
 .hall-carousel .carousel-indicators {
   bottom: 15px;
 }
@@ -154,8 +166,8 @@
 }
 
 .hall-carousel .carousel-indicators .active {
-  background-color: #007bff !important;
-  border-color: #007bff;
+  background-color: #2563eb !important;
+  border-color: #2563eb;
 }
 
 .thumbnails-container {
@@ -178,23 +190,171 @@
 
 .thumbnail-image:hover {
   transform: scale(1.05);
-  border-color: #007bff;
+  border-color: #2563eb;
 }
 
 .thumbnail-active {
-  border-color: #007bff !important;
-  box-shadow: 0 0 6px rgba(0, 123, 255, 0.5);
+  border-color: #2563eb !important;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.5);
 }
 
+/* Booking card improvements */
+.booking-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: white;
+}
+
+.calendar-title {
+  color: #1e293b;
+  font-weight: 700;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+}
+
+.slots-title {
+  color: #475569;
+  font-weight: 600;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+/* Termini - bolji izgled */
+.hall-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.hall-slot-button {
+  padding: 14px 10px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: white;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.hall-slot-button:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.hall-slot-button.selected {
+  background-color: #2563eb;
+  color: white;
+  border-color: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Dugme za rezervaciju */
+.book-button {
+  width: 100%;
+  padding: 14px;
+  background-color: #059669;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.book-button:hover:not(.disabled) {
+  background-color: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.book-button.disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Loading state */
+.loading-slots {
+  text-align: center;
+  padding: 30px;
+  color: #64748b;
+}
+
+.loading-text {
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+/* No slots state */
+.no-slots {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 15px 0;
+}
+
+.no-slots-text {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Reviews section */
+.reviews-section-container {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e2e8f0;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
-  .thumbnail-image {
-    width: 60px;
-    height: 50px;
+  .hall-detail-flex {
+    flex-direction: column;
+  }
+  
+  .hall-left,
+  .hall-right {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  
+  .hall-title {
+    font-size: 2.2rem;
+  }
+  
+  .hall-meta-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .hall-address,
+  .hall-price-main {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+  
+  .hall-slots {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+  }
+  
+  .carousel-image {
+    height: 250px;
   }
 }
 
 @media (max-width: 900px) {
-  /* Carousel controls za mobile */
   .hall-carousel .carousel-control-prev,
   .hall-carousel .carousel-control-next {
     width: 45px;
@@ -219,9 +379,6 @@
 }
 
 @media (max-width: 480px) {
-  /* ... ostali responsive stilovi ... */
-
-  /* Carousel controls za very small screens */
   .hall-carousel .carousel-control-prev,
   .hall-carousel .carousel-control-next {
     width: 40px;
@@ -235,128 +392,9 @@
     height: 20px;
     background-size: 20px 20px;
   }
-}
-/* HallDetail.css - Dodaj ove stilove */
-
-.hall-slots {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
-  margin: 15px 0;
-}
-
-.hall-slot-button {
-  padding: 12px 8px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  color: #495057;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-.hall-slot-button:hover {
-  background-color: #e9ecef;
-  border-color: #6c757d;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.hall-slot-button.selected {
-  background-color: #007bff;
-  color: white;
-  border-color: #0056b3;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-  font-weight: 600;
-}
-
-.hall-slot-button:disabled {
-  background-color: #6c757d;
-  color: white;
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
-}
-
-.hall-slot-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-}
-
-/* Loading state */
-.loading-slots {
-  text-align: center;
-  padding: 30px;
-  color: #6c757d;
-}
-
-.loading-text {
-  margin-top: 10px;
-  font-size: 14px;
-}
-
-/* No slots state */
-.no-slots {
-  text-align: center;
-  padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  margin: 15px 0;
-}
-
-.no-slots-text {
-  color: #6c757d;
-  margin: 0;
-  font-size: 14px;
-}
-
-/* Book button */
-.book-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-top: 20px;
-}
-
-.book-button:hover:not(.disabled) {
-  background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-}
-
-.book-button.disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
-}
-
-.book-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25);
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .hall-slots {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-  }
-
-  .hall-slot-button {
-    padding: 10px 6px;
-    font-size: 12px;
+  
+  .thumbnail-image {
+    width: 60px;
+    height: 50px;
   }
 }

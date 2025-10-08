@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -7,9 +8,10 @@ import OwnerAvailability from "./OwnerAvailability";
 import OwnerAppointments from "./OwnerAppointments";
 import OwnerAvailabilityList from "./OwnerAvailabilityList";
 import OwnerAppointmentHistory from "./OwnerAppointmentHistory";
-import { Tabs, Tab, Container, Alert, Spinner } from "react-bootstrap";
+import { Tabs, Tab, Container, Alert, Spinner, Badge } from "react-bootstrap";
 import "../styles/OwnerDashboard.css";
 import OwnerMonthlyReports from "../components/OwnerMonthlyReports";
+import OwnerReviews from "../components/OwnerReviews";
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +21,8 @@ export default function OwnerDashboard() {
   const [myHalls, setMyHalls] = useState([]);
   const [loadingHalls, setLoadingHalls] = useState(false);
   const [error, setError] = useState(null);
+  const [newReviewsCount, setNewReviewsCount] = useState(0);
+  const [hasMarkedAsSeen, setHasMarkedAsSeen] = useState(false);
 
   // redirect / protect route
   useEffect(() => {
@@ -48,10 +52,60 @@ export default function OwnerDashboard() {
     }
   };
 
+  // Check for new reviews
+  const checkNewReviews = async () => {
+    try {
+      const res = await api.get('/owner/reviews/');
+      setNewReviewsCount(res.data.unseen_count || 0);
+    } catch (err) {
+      console.error('Greška pri proveri novih recenzija:', err);
+    }
+  };
+
+  // Funkcija koja se poziva kada owner vidi recenzije
+  const handleReviewsSeen = async () => {
+    if (newReviewsCount > 0 && !hasMarkedAsSeen) {
+      try {
+        await api.post('/owner/reviews/');
+        setNewReviewsCount(0);
+        setHasMarkedAsSeen(true);
+      } catch (err) {
+        console.error('Greška pri označavanju recenzija:', err);
+      }
+    }
+  };
+
+  // Handler za promenu taba
+  const handleTabSelect = (tab) => {
+    setActiveTab(tab);
+    
+    // Ako se selektuje tab Recenzije, označi kao pročitano
+    if (tab === "reviews") {
+      handleReviewsSeen();
+    }
+  };
+
   // initial load
   useEffect(() => {
     fetchMyHalls();
   }, []);
+
+  // Set up interval for checking new reviews
+  useEffect(() => {
+    if (user && user.role === 'owner') {
+      checkNewReviews();
+      // Proveri na svakih 5 minuta
+      const interval = setInterval(checkNewReviews, 5 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Resetuj hasMarkedAsSeen kada se promeni broj novih recenzija
+  useEffect(() => {
+    if (newReviewsCount > 0) {
+      setHasMarkedAsSeen(false);
+    }
+  }, [newReviewsCount]);
 
   return (
     <Container className="mt-4">
@@ -69,7 +123,7 @@ export default function OwnerDashboard() {
 
       <Tabs
         activeKey={activeTab}
-        onSelect={(tab) => setActiveTab(tab)}
+        onSelect={handleTabSelect}
         className="mb-4"
         justify
         variant="pills"
@@ -122,11 +176,34 @@ export default function OwnerDashboard() {
           </div>
         </Tab>
 
+        <Tab 
+          eventKey="reviews" 
+          title={
+            <>
+              ⭐ Recenzije 
+              {newReviewsCount > 0 && (
+                <Badge bg="danger" className="ms-1">
+                  {newReviewsCount}
+                </Badge>
+              )}
+            </>
+          } 
+          className="border-0"
+        >
+          <div className="mt-3">
+            <OwnerReviews 
+              myHalls={myHalls} 
+              onReviewsSeen={handleReviewsSeen}
+            />
+          </div>
+        </Tab>
+
         <Tab eventKey="history" title="📊 Istorija" className="border-0">
           <div className="mt-3">
             <OwnerAppointmentHistory />
           </div>
         </Tab>
+        
         <Tab eventKey="reports" title="📈 Izveštaji" className="border-0">
           <div className="mt-3">
             <OwnerMonthlyReports />

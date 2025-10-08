@@ -11,6 +11,7 @@ import {
   showError,
   showApiError,
 } from "../utils/sweetAlert";
+import ReviewsSection from '../components/ReviewsSection';
 
 const getFullUrl = (path) => {
   if (!path) return null;
@@ -53,7 +54,7 @@ function HallDetail() {
     const year = localDate.getFullYear();
     const month = String(localDate.getMonth() + 1).padStart(2, "0");
     const day = String(localDate.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`; // npr. "2025-10-03"
+    const dateStr = `${year}-${month}-${day}`;
 
     api
       .get(`/halls/${id}/free/?date=${dateStr}`)
@@ -136,12 +137,18 @@ function HallDetail() {
 
   return (
     <div className="hall-detail-container">
-      {/* Hall Header with basic info - BEZ DESKRIPCIJE OVDE */}
+      {/* Hall Header with basic info */}
       <div className="hall-header">
         <h1 className="hall-title">{hall.name}</h1>
-        <div className="hall-badges">
-          <Badge className="address-badge">📍 {hall.address}</Badge>
-          <Badge className="price-badge">💰 {hall.price} RSD/sat</Badge>
+        <div className="hall-meta-info">
+          <div className="hall-address">
+            <span className="address-icon">📍</span>
+            {hall.address}
+          </div>
+          <div className="hall-price-main">
+            <span className="price-icon">💰</span>
+            {hall.price} RSD/sat
+          </div>
         </div>
       </div>
 
@@ -153,7 +160,7 @@ function HallDetail() {
       )}
 
       <div className="hall-detail-flex">
-        {/* Left column - Images + Deskripcija */}
+        {/* Left column - Images */}
         <div className="hall-left">
           {fullImages.length === 0 ? (
             <div className="hall-placeholder">
@@ -233,7 +240,7 @@ function HallDetail() {
                   <div className="hall-slots">
                     {freeSlots.map((slot) => {
                       const isSelected = slot.start === selectedSlotStart;
-                      const localTime = new Date(slot.start); // backend šalje UTC, JS sam prebaci u lokalno
+                      const localTime = new Date(slot.start);
                       return (
                         <button
                           key={slot.start}
@@ -267,6 +274,11 @@ function HallDetail() {
             </Card.Body>
           </Card>
         </div>
+      </div>
+
+      
+      <div className="reviews-section-container">
+        <ReviewsSection hallId={id} hallName={hall.name} />
       </div>
     </div>
   );

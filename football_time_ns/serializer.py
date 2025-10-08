@@ -2,7 +2,7 @@
 from datetime import datetime
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Hall, Profile, Availability, Appointment, HallImage
+from .models import Hall, Profile, Availability, Appointment, HallImage, Review
 from django.utils.timezone import make_aware
 import pytz
 from django.utils.crypto import get_random_string
@@ -208,3 +208,40 @@ class ChangePasswordSerializer(serializers.Serializer):
         if len(value) < 6:
             raise serializers.ValidationError("Šifra mora imati najmanje 6 karaktera.")
         return value
+    
+
+
+
+    
+
+
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+    user_full_name = serializers.SerializerMethodField()
+    hall_name = serializers.ReadOnlyField(source='hall.name')  # Ovo je dodato
+
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'user_full_name', 'hall', 'hall_name', 'appointment', 'rating', 'comment', 'created_at']
+        read_only_fields = ['user', 'created_at']
+    
+    def get_user_full_name(self, obj):
+        return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
+    
+    def validate(self, attrs):
+        # Proveri da li appointment pripada user-u
+        appointment = attrs.get('appointment')
+        if appointment and appointment.user != self.context['request'].user:
+            raise serializers.ValidationError({"appointment": "Možete oceniti samo svoje rezervacije."})
+        
+        # Proveri da li je rezervacija odobrena
+        if appointment and appointment.status != 'approved':
+            raise serializers.ValidationError({"appointment": "Možete oceniti samo odobrene rezervacije."})
+        
+        # Proveri da li već postoji review za ovu rezervaciju
+        if Review.objects.filter(user=self.context['request'].user, appointment=appointment).exists():
+            raise serializers.ValidationError({"appointment": "Već ste ocenili ovu rezervaciju."})
+        
+        return attrs

@@ -44,9 +44,15 @@ function MyNavBar() {
                 </Nav.Link>
 
                 {user.role === "player" && (
-                  <Nav.Link as={Link} to="/my-appointments">
-                    📋 Moje Rezervacije
-                  </Nav.Link>
+                  <>
+                    <Nav.Link as={Link} to="/my-appointments">
+                      📋 Moje Rezervacije
+                    </Nav.Link>
+                    {/* DODATA OPCIJA ZA MOJE OCENE */}
+                    <Nav.Link as={Link} to="/my-reviews">
+                      📝 Moje Ocene
+                    </Nav.Link>
+                  </>
                 )}
 
                 {user.role === "owner" && (

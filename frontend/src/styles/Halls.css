@@ -131,7 +131,7 @@
 }
 
 .hall-description {
-  color: #5a6c7d;
+  color: #fb8612;
   font-size: 0.95rem;
   line-height: 1.6;
   display: -webkit-box;
@@ -242,7 +242,7 @@
   animation: fadeInUp 0.6s ease forwards;
 }
 
-/* Stil za grid sa razmacima */
+
 .row.g-4 {
   margin-top: 1rem;
 }
