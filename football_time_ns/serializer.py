@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from rest_framework import serializers
 from django.contrib.auth.models import User
@@ -8,6 +7,8 @@ import pytz
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
 
 class HallImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
@@ -189,10 +190,6 @@ class AppointmentCreateSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = ['id','hall','start','end']
 
-
-
-
-
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True, min_length=6)
@@ -208,19 +205,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         if len(value) < 6:
             raise serializers.ValidationError("Šifra mora imati najmanje 6 karaktera.")
         return value
-    
-
-
-
-    
-
-
-
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
     user_full_name = serializers.SerializerMethodField()
-    hall_name = serializers.ReadOnlyField(source='hall.name')  # Ovo je dodato
+    hall_name = serializers.ReadOnlyField(source='hall.name')
 
     class Meta:
         model = Review
@@ -231,17 +220,28 @@ class ReviewSerializer(serializers.ModelSerializer):
         return f"{obj.user.first_name} {obj.user.last_name}".strip() or obj.user.username
     
     def validate(self, attrs):
-        # Proveri da li appointment pripada user-u
         appointment = attrs.get('appointment')
-        if appointment and appointment.user != self.context['request'].user:
+        request = self.context.get('request')
+        
+        if not request:
+            raise serializers.ValidationError("Request context is missing")
+        
+        # Proveri da li appointment pripada user-u
+        if appointment and appointment.user != request.user:
             raise serializers.ValidationError({"appointment": "Možete oceniti samo svoje rezervacije."})
         
         # Proveri da li je rezervacija odobrena
         if appointment and appointment.status != 'approved':
             raise serializers.ValidationError({"appointment": "Možete oceniti samo odobrene rezervacije."})
         
+        # NOVO: Proveri da li je user check-in-ovao (došao na termin)
+        if appointment and not appointment.checked_in:
+            raise serializers.ValidationError({
+                "appointment": "Možete oceniti samo termine na koje ste došli (check-in)."
+            })
+        
         # Proveri da li već postoji review za ovu rezervaciju
-        if Review.objects.filter(user=self.context['request'].user, appointment=appointment).exists():
+        if Review.objects.filter(user=request.user, appointment=appointment).exists():
             raise serializers.ValidationError({"appointment": "Već ste ocenili ovu rezervaciju."})
         
         return attrs

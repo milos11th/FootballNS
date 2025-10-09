@@ -78,6 +78,8 @@
   margin-bottom: 0;
   white-space: pre-line;
   word-break: break-word;
+  min-height: 200px;
+  max-height: 400px;
 }
 
 .hall-detail-flex {
@@ -321,34 +323,34 @@
   .hall-detail-flex {
     flex-direction: column;
   }
-  
+
   .hall-left,
   .hall-right {
     flex: 0 0 100%;
     max-width: 100%;
   }
-  
+
   .hall-title {
     font-size: 2.2rem;
   }
-  
+
   .hall-meta-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
-  
+
   .hall-address,
   .hall-price-main {
     font-size: 1rem;
     padding: 10px 16px;
   }
-  
+
   .hall-slots {
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 8px;
   }
-  
+
   .carousel-image {
     height: 250px;
   }
@@ -392,9 +394,57 @@
     height: 20px;
     background-size: 20px 20px;
   }
-  
+
   .thumbnail-image {
     width: 60px;
     height: 50px;
   }
+}
+.disabled-slot {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  border-color: #dee2e6 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+}
+
+.disabled-slot:hover {
+  background-color: #f8f9fa !important;
+  transform: none !important;
+}
+/* Dodaj na kraj HallDetail.css fajla */
+
+/* Stilovi za prošle termine */
+.past-slot {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  border-color: #dee2e6 !important;
+  cursor: not-allowed !important;
+  opacity: 0.6 !important;
+  text-decoration: line-through;
+}
+
+.past-slot:hover {
+  background-color: #f8f9fa !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.past-slots-info {
+  margin-top: 10px;
+  padding: 8px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.react-calendar__tile--past {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+.react-calendar__tile--past:enabled:hover,
+.react-calendar__tile--past:enabled:focus {
+  background-color: #e9ecef;
 }

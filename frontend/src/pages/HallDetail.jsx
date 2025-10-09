@@ -11,7 +11,7 @@ import {
   showError,
   showApiError,
 } from "../utils/sweetAlert";
-import ReviewsSection from '../components/ReviewsSection';
+import ReviewsSection from "../components/ReviewsSection";
 
 const getFullUrl = (path) => {
   if (!path) return null;
@@ -79,6 +79,13 @@ function HallDetail() {
       return;
     }
 
+    // PROVERA DA LI JE TERMIN U PROŠLOSTI
+    const selectedSlot = freeSlots.find((s) => s.start === selectedSlotStart);
+    if (selectedSlot && new Date(selectedSlot.end) <= new Date()) {
+      await showError("Ne možete rezervisati termine u prošlosti!");
+      return;
+    }
+
     const token = localStorage.getItem("access");
     if (!token) {
       const result = await showConfirm(
@@ -119,6 +126,19 @@ function HallDetail() {
       console.error(err);
       showApiError(err);
     }
+  };
+
+  // Funkcija za proveru da li je termin u prošlosti
+  const isPastSlot = (slot) => {
+    return new Date(slot.end) <= new Date();
+  };
+
+  // Funkcija za proveru da li je termin danas u prošlosti
+  const isTodayPastSlot = (slot) => {
+    const now = new Date();
+    const slotDate = new Date(slot.start);
+    const isToday = slotDate.toDateString() === now.toDateString();
+    return isToday && isPastSlot(slot);
   };
 
   if (!hall) return <div className="loading">Učitavanje hale...</div>;
@@ -218,6 +238,7 @@ function HallDetail() {
                 onChange={setSelectedDate}
                 value={selectedDate}
                 className="custom-calendar"
+                minDate={new Date()} // Sprečava odabir prošlih datuma
               />
 
               <div className="slots-section">
@@ -241,18 +262,28 @@ function HallDetail() {
                     {freeSlots.map((slot) => {
                       const isSelected = slot.start === selectedSlotStart;
                       const localTime = new Date(slot.start);
+                      const isPast = isPastSlot(slot);
+                      const isTodayPast = isTodayPastSlot(slot);
+
                       return (
                         <button
                           key={slot.start}
-                          onClick={() => setSelectedSlotStart(slot.start)}
+                          onClick={() => {
+                            if (!isPast) {
+                              setSelectedSlotStart(slot.start);
+                            }
+                          }}
                           className={`hall-slot-button ${
                             isSelected ? "selected" : ""
-                          }`}
+                          } ${isPast ? "past-slot" : ""}`}
+                          disabled={isPast}
+                          title={isPast ? "Termin je prošao" : ""}
                         >
                           {localTime.toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
+                          {isPast && " ❌"}
                         </button>
                       );
                     })}
@@ -270,13 +301,21 @@ function HallDetail() {
                     ? "Izaberi termin"
                     : "✅ Rezerviši termin"}
                 </button>
+
+                {/* Informacija o prošlim terminima */}
+                {freeSlots.some((slot) => isPastSlot(slot)) && (
+                  <div className="past-slots-info">
+                    <small className="text-muted">
+                      ❌ Termini sa X su prošli i ne mogu se rezervisati
+                    </small>
+                  </div>
+                )}
               </div>
             </Card.Body>
           </Card>
         </div>
       </div>
 
-      
       <div className="reviews-section-container">
         <ReviewsSection hallId={id} hallName={hall.name} />
       </div>

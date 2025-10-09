@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView, HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, HallReviewsView, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, OwnerReviewsView, RegisterView, MeView,
+    AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView,HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, HallReviewsView, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, OwnerReviewsView, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
     OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView, ReviewCreateView, UserReviewableAppointmentsView, UserReviewsView, VerifyEmailView
@@ -42,8 +42,8 @@ urlpatterns = [
     path('owner/monthly-stats/', OwnerMonthlyStats.as_view(), name='owner_monthly_stats'),
 
 
-    #reviews
-    # Dodaj ove rute u urlpatterns: 
+
+    #reviews 
     path('reviews/create/', ReviewCreateView.as_view(), name='review_create'),  
     path('halls/<int:hall_id>/reviews/', HallReviewsView.as_view(), name='hall_reviews'),
     path('my-reviews/', UserReviewsView.as_view(), name='user_reviews'),

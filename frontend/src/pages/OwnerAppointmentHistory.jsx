@@ -10,14 +10,25 @@ import {
   Form,
 } from "react-bootstrap";
 import api from "../api";
-import { showApiError } from "../utils/sweetAlert";
+import { showApiError, showSuccess } from "../utils/sweetAlert";
 
 function OwnerAppointmentHistory() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, approved, pending, rejected
+  const [filter, setFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [exporting, setExporting] = useState(false);
+
+  const handleCheckIn = async (appointmentId) => {
+    try {
+      await api.post(`/appointments/${appointmentId}/checkin/`);
+      await showSuccess("Korisnik uspešno check-in-ovan!");
+      fetchAllAppointments();
+    } catch (err) {
+      console.error("Error checking in:", err);
+      showApiError(err);
+    }
+  };
 
   useEffect(() => {
     fetchAllAppointments();
@@ -27,12 +38,9 @@ function OwnerAppointmentHistory() {
     try {
       setLoading(true);
       const res = await api.get("/owner/appointments/");
-
-      // Sortiraj po datumu - najnovije prvo
       const sortedAppointments = res.data.sort(
         (a, b) => new Date(b.start) - new Date(a.start)
       );
-
       setAppointments(sortedAppointments);
     } catch (err) {
       console.error("Error fetching appointment history:", err);
@@ -42,6 +50,19 @@ function OwnerAppointmentHistory() {
     }
   };
 
+  // FUNKCIJA ZA PROVERU CHECK-IN-A ZA VLASNIKE
+  const canCheckIn = (appointment) => {
+    if (appointment.checked_in) return false;
+    if (appointment.status !== "approved") return false;
+
+    const now = new Date();
+    const startTime = new Date(appointment.start);
+    const endTime = new Date(appointment.end);
+
+    // Vlasnici mogu da check-in-uju bilo kada tokom termina
+    return now <= endTime;
+  };
+
   const handleExportPDF = async () => {
     setExporting(true);
     try {
@@ -49,7 +70,6 @@ function OwnerAppointmentHistory() {
         responseType: "blob",
       });
 
-      // Create download link
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -70,17 +90,13 @@ function OwnerAppointmentHistory() {
   };
 
   const filteredAppointments = appointments.filter((app) => {
-    // Filter po statusu
     if (filter !== "all" && app.status !== filter) {
       return false;
     }
-
-    // Filter po datumu
     if (dateFilter) {
       const appointmentDate = new Date(app.start).toISOString().split("T")[0];
       return appointmentDate === dateFilter;
     }
-
     return true;
   });
 
@@ -122,8 +138,9 @@ function OwnerAppointmentHistory() {
     const cancelled = appointments.filter(
       (a) => a.status === "cancelled"
     ).length;
+    const checkedIn = appointments.filter((a) => a.checked_in).length;
 
-    return { total, approved, pending, rejected, cancelled };
+    return { total, approved, pending, rejected, cancelled, checkedIn };
   };
 
   const stats = getStats();
@@ -150,7 +167,7 @@ function OwnerAppointmentHistory() {
           <Badge bg="primary" className="fs-6">
             Ukupno: {stats.total}
           </Badge>
-          {/* DODAJ PDF DUGME */}
+
           <Button
             variant="success"
             onClick={handleExportPDF}
@@ -169,8 +186,17 @@ function OwnerAppointmentHistory() {
         </div>
       </div>
 
+      {/* DODAJ CHECK-IN STATISTIKU */}
       <Row className="mb-4">
-        <Col md={3} sm={6}>
+        <Col md={2} sm={4}>
+          <Card className="border-0 bg-primary bg-opacity-10">
+            <Card.Body className="text-center py-3">
+              <h5 className="text-primary mb-1">{stats.total}</h5>
+              <small className="text-muted">Ukupno</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={2} sm={4}>
           <Card className="border-0 bg-success bg-opacity-10">
             <Card.Body className="text-center py-3">
               <h5 className="text-success mb-1">{stats.approved}</h5>
@@ -178,7 +204,15 @@ function OwnerAppointmentHistory() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} sm={6}>
+        <Col md={2} sm={4}>
+          <Card className="border-0 bg-info bg-opacity-10">
+            <Card.Body className="text-center py-3">
+              <h5 className="text-info mb-1">{stats.checkedIn}</h5>
+              <small className="text-muted">Check-in</small>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={2} sm={4}>
           <Card className="border-0 bg-warning bg-opacity-10">
             <Card.Body className="text-center py-3">
               <h5 className="text-warning mb-1">{stats.pending}</h5>
@@ -186,7 +220,7 @@ function OwnerAppointmentHistory() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} sm={6}>
+        <Col md={2} sm={4}>
           <Card className="border-0 bg-danger bg-opacity-10">
             <Card.Body className="text-center py-3">
               <h5 className="text-danger mb-1">{stats.rejected}</h5>
@@ -194,7 +228,7 @@ function OwnerAppointmentHistory() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={3} sm={6}>
+        <Col md={2} sm={4}>
           <Card className="border-0 bg-secondary bg-opacity-10">
             <Card.Body className="text-center py-3">
               <h5 className="text-secondary mb-1">{stats.cancelled}</h5>
@@ -204,7 +238,6 @@ function OwnerAppointmentHistory() {
         </Col>
       </Row>
 
-      {/* Filteri - OSTAJE ISTO */}
       <Card className="mb-4">
         <Card.Body>
           <Row className="g-3">
@@ -302,10 +335,23 @@ function OwnerAppointmentHistory() {
                           >
                             {getStatusText(appointment.status)}
                           </Badge>
-                          {appointment.checked_in && (
+
+                          {/* CHECK-IN ZA VLASNIKE */}
+                          {appointment.checked_in ? (
                             <Badge bg="info" className="ms-1">
                               ✅ Check-in
                             </Badge>
+                          ) : (
+                            canCheckIn(appointment) && (
+                              <Button
+                                variant="outline-info"
+                                size="sm"
+                                onClick={() => handleCheckIn(appointment.id)}
+                                className="ms-1"
+                              >
+                                📍 Check-in
+                              </Button>
+                            )
                           )}
                         </div>
                       </div>

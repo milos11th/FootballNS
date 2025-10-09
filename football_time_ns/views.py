@@ -5,17 +5,15 @@ from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
-from django.utils.dateparse import parse_datetime
 from django.db import transaction
-from datetime import timedelta, datetime,time
+from datetime import timedelta, datetime,time, timezone
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.platypus import Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import mm
-from datetime import datetime
+from reportlab.platypus import Table, TableStyle
+from django.utils import timezone 
+
 import io
 from .models import Hall, Appointment, Availability, HallImage,Profile, Review
 from .serializer import (
@@ -25,13 +23,12 @@ from .serializer import (
 from .permissions import IsOwnerRole
 from django.contrib.auth import update_session_auth_hash
 from django.db.models import Count 
-from rest_framework.decorators import api_view
 from django.shortcuts import redirect
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 
-from football_time_ns import serializer
+
 
 
 
@@ -240,7 +237,6 @@ class HallFreeSlots(APIView):
             # Konvertuj u UTC za bazu
             day_start_utc = local_start.astimezone(pytz.UTC)
             day_end_utc = local_end.astimezone(pytz.UTC)
-           
             
         except Exception as e:
             print(f"Date parsing error: {e}")
@@ -260,21 +256,37 @@ class HallFreeSlots(APIView):
 
         free = compute_free_intervals(avail_list, busy_list)
 
-        # slotovi po 1h
+        # slotovi po 1h - DODAJ PROVERU ZA TRENUTNO VREME
         slots = []
+        current_time = timezone.now().astimezone(tz)  # Trenutno vreme u Belgrade timezone
+        
         for s,e in free:
             cur = s
             while cur + timedelta(hours=1) <= e:
-                slots.append({
-                    'start': cur.isoformat(), 
-                    'end': (cur + timedelta(hours=1)).isoformat()
-                })
+                slot_end = cur + timedelta(hours=1)
+                
+                # PROVERI DA LI JE SLOT U BUDUĆNOSTI
+                if slot_end > current_time:
+                    slots.append({
+                        'start': cur.isoformat(), 
+                        'end': slot_end.isoformat(),
+                        'available': True
+                    })
+                else:
+                    # Slot je u prošlosti - označi kao nedostupan
+                    slots.append({
+                        'start': cur.isoformat(), 
+                        'end': slot_end.isoformat(),
+                        'available': False,
+                        'reason': 'Termin je u prošlosti'
+                    })
+                
                 cur += timedelta(hours=1)
-
 
         return Response({
             'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free],
-            'hour_slots': slots
+            'hour_slots': slots,
+            'current_time': current_time.isoformat()  # Dodaj trenutno vreme za debug
         })
 
 # Create appointment (user) -> pending
@@ -353,16 +365,66 @@ class OwnerApproveAppointment(APIView):
             return Response({'error':'action must be approve or reject'}, status=400)
 
 # Check-in (user or owner)
+
 class AppointmentCheckIn(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        appointment = get_object_or_404(Appointment, pk=pk)
-        if appointment.user != request.user and appointment.hall.owner != request.user:
-            return Response({'error':'No permission to check-in'}, status=403)
-        appointment.checked_in = True
-        appointment.save()
-        return Response({'message':'Checked in successfully'})
+        try:
+            appointment = get_object_or_404(Appointment, pk=pk)
+            
+            print(f"🔍 DEBUG CHECK-IN:")
+            print(f"   Appointment: {appointment.id}")
+            print(f"   User: {request.user.username}")
+            print(f"   Status: {appointment.status}")
+            print(f"   Already checked in: {appointment.checked_in}")
+            
+            # PROVERA DA LI JE VEĆ CHECK-IN-OVANO
+            if appointment.checked_in:
+                return Response({'error': 'Već ste check-in-ovali za ovaj termin'}, status=400)
+            
+            # PROVERA VREMENA
+            now = timezone.now()
+            start_time = appointment.start
+            end_time = appointment.end
+            
+            print(f"   Now: {now}")
+            print(f"   Start: {start_time}")
+            print(f"   End: {end_time}")
+            
+            # Check-in moguć samo 1 sat pre početka i tokom trajanja termina
+            one_hour_before = start_time - timedelta(hours=1)  # ← KORISTI timedelta direktno
+            can_check_in = (now >= one_hour_before) and (now <= end_time)
+            
+            print(f"   Can check in: {can_check_in}")
+            print(f"   One hour before: {one_hour_before}")
+            
+            if not can_check_in:
+                return Response({
+                    'error': f'Check-in je moguć samo od {one_hour_before.strftime("%d.%m.%Y. %H:%M")} do {end_time.strftime("%d.%m.%Y. %H:%M")}'
+                }, status=400)
+            
+            # PROVERA DOZVOLE
+            if appointment.user != request.user and appointment.hall.owner != request.user:
+                return Response({'error':'Nemate dozvolu za check-in'}, status=403)
+                
+            # PROVERA STATUSA
+            if appointment.status != 'approved':
+                return Response({'error':'Možete check-in-ovati samo odobrene rezervacije'}, status=400)
+            
+            # SVE JE U REDU - CHECK-IN
+            appointment.checked_in = True
+            appointment.save()
+            
+            print(f"   ✅ CHECK-IN SUCCESSFUL")
+            
+            return Response({'message':'Uspešno ste check-in-ovali!'})
+            
+        except Exception as e:
+            print(f"❌ CHECK-IN ERROR: {e}")
+            return Response({'error': f'Greška pri check-in: {str(e)}'}, status=500)
+
+
 
 # Delete appointment (user or owner)
 class AppointmentDelete(APIView):
@@ -459,6 +521,7 @@ class OwnerAllAppointments(APIView):
     
 
 
+
 class OwnerExportPDF(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
 
@@ -484,16 +547,20 @@ class OwnerExportPDF(APIView):
         
         y_position = height - 130
         
-        # Table data
-        data = [['Hala', 'Korisnik', 'Datum', 'Vreme', 'Status', 'Cena']]
+        # Table data - DODAJ CHECK-IN KOLONU
+        data = [['Hala', 'Korisnik', 'Datum', 'Vreme', 'Status', 'Check-in', 'Cena']]
         
         total_price = 0
         status_counts = {'approved': 0, 'pending': 0, 'rejected': 0, 'cancelled': 0}
+        checked_in_count = 0
         
         for appointment in appointments:
             date_str = appointment.start.strftime('%d.%m.%Y.')
             time_str = f"{appointment.start.strftime('%H:%M')} - {appointment.end.strftime('%H:%M')}"
             price = appointment.hall.price
+            
+            # CHECK-IN STATUS
+            checkin_status = "✅" if appointment.checked_in else "❌"
             
             data.append([
                 appointment.hall.name,
@@ -501,15 +568,19 @@ class OwnerExportPDF(APIView):
                 date_str,
                 time_str,
                 appointment.status,
+                checkin_status,  # CHECK-IN KOLONA
                 f"{price} RSD"
             ])
             
             if appointment.status == 'approved':
                 total_price += price
+                if appointment.checked_in:
+                    checked_in_count += 1
+                    
             status_counts[appointment.status] += 1
         
         # Create table
-        table = Table(data, colWidths=[80, 70, 60, 80, 50, 50])
+        table = Table(data, colWidths=[70, 65, 55, 75, 45, 40, 50])  # Prilagodi širine
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -527,7 +598,7 @@ class OwnerExportPDF(APIView):
         table.wrapOn(p, width - 100, height)
         table.drawOn(p, 50, y_position - len(appointments) * 15 - 50)
         
-        # Statistics
+        # Statistics - DODAJ CHECK-IN STATISTIKU
         y_stats = y_position - len(appointments) * 15 - 80
         p.setFont("Helvetica-Bold", 10)
         p.drawString(50, y_stats, "Statistika:")
@@ -535,6 +606,7 @@ class OwnerExportPDF(APIView):
         
         stats = [
             f"Odobrene: {status_counts['approved']}",
+            f"Check-in: {checked_in_count}/{status_counts['approved']}",
             f"Na čekanju: {status_counts['pending']}",
             f"Odbijene: {status_counts['rejected']}",
             f"Otkazane: {status_counts['cancelled']}",
@@ -555,7 +627,6 @@ class OwnerExportPDF(APIView):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         return response
-    
 
 
 class OwnerMonthlyStats(APIView):
@@ -569,52 +640,43 @@ class OwnerMonthlyStats(APIView):
         except ValueError:
             return Response({'error': 'Invalid year'}, status=400)
 
-        # Get owner's halls
         halls = Hall.objects.filter(owner=request.user)
         
-        # Initialize monthly data
-        months = [
-            'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun',
-            'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'
-        ]
+        months = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar', 'Decembar']
         
         monthly_stats = []
         
         for month in range(1, 13):
-            # Date range for the month
             month_start = datetime(year, month, 1)
             if month == 12:
                 month_end = datetime(year + 1, 1, 1)
             else:
                 month_end = datetime(year, month + 1, 1)
             
-            # Convert to timezone
             tz = pytz.timezone("Europe/Belgrade")
             month_start = tz.localize(month_start)
             month_end = tz.localize(month_end)
             
-            # Get appointments for this month
             appointments = Appointment.objects.filter(
                 hall__in=halls,
                 start__gte=month_start,
                 start__lt=month_end
             )
             
-            # Calculate stats
             total_reservations = appointments.count()
             approved_reservations = appointments.filter(status='approved').count()
+            pending_reservations = appointments.filter(status='pending').count()
+            checked_in_reservations = appointments.filter(status='approved', checked_in=True).count()
             
-            # Calculate revenue (only approved reservations)
-            revenue = sum(
-                float(appointment.hall.price)
-                for appointment in appointments.filter(status='approved')
-            )
+            # Calculate revenues
+            revenue = sum(float(app.hall.price) for app in appointments.filter(status='approved'))
+            realized_revenue = sum(float(app.hall.price) for app in appointments.filter(status='approved', checked_in=True))
             
-            # Find most popular hall for this month
-            hall_stats = appointments.values('hall__name').annotate(
-                count=Count('id')
-            ).order_by('-count')
             
+            completion_rate = round((approved_reservations / total_reservations * 100) if total_reservations > 0 else 0, 1)
+            realization_rate = round((checked_in_reservations / approved_reservations * 100) if approved_reservations > 0 else 0, 1)
+            
+            hall_stats = appointments.values('hall__name').annotate(count=Count('id')).order_by('-count')
             most_popular_hall = hall_stats[0]['hall__name'] if hall_stats else "Nema rezervacija"
             
             monthly_stats.append({
@@ -622,26 +684,43 @@ class OwnerMonthlyStats(APIView):
                 'month_number': month,
                 'total_reservations': total_reservations,
                 'approved_reservations': approved_reservations,
+                'pending_reservations': pending_reservations,
+                'checked_in_reservations': checked_in_reservations,
                 'revenue': revenue,
+                'realized_revenue': realized_revenue,
+                'completion_rate': completion_rate,
+                'realization_rate': realization_rate,
                 'most_popular_hall': most_popular_hall,
-                'pending_reservations': appointments.filter(status='pending').count(),
-                'completion_rate': (approved_reservations / total_reservations * 100) if total_reservations > 0 else 0
             })
         
-        # Yearly totals
+        
         yearly_totals = {
             'total_reservations': sum(stat['total_reservations'] for stat in monthly_stats),
             'approved_reservations': sum(stat['approved_reservations'] for stat in monthly_stats),
+            'checked_in_reservations': sum(stat['checked_in_reservations'] for stat in monthly_stats),
             'total_revenue': sum(stat['revenue'] for stat in monthly_stats),
-            'average_completion_rate': sum(stat['completion_rate'] for stat in monthly_stats) / 12
+            'realized_revenue': sum(stat['realized_revenue'] for stat in monthly_stats),
         }
+        
+        
+        months_with_reservations = [stat for stat in monthly_stats if stat['total_reservations'] > 0]
+        months_with_approvals = [stat for stat in monthly_stats if stat['approved_reservations'] > 0]
+        
+        yearly_totals['average_completion_rate'] = round(
+            sum(stat['completion_rate'] for stat in months_with_reservations) / len(months_with_reservations) 
+            if months_with_reservations else 0, 1
+        )
+        
+        yearly_totals['average_realization_rate'] = round(
+            sum(stat['realization_rate'] for stat in months_with_approvals) / len(months_with_approvals) 
+            if months_with_approvals else 0, 1
+        )
         
         return Response({
             'year': year,
             'monthly_stats': monthly_stats,
             'yearly_totals': yearly_totals
         })
-    
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
@@ -749,16 +828,16 @@ class UserReviewableAppointmentsView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        # Vrati odobrene rezervacije koje user nije ocenio
+        # Vrati odobrene rezervacije gde je user CHECK-IN-OVAO i nije ocenio
         reviewed_appointments = Review.objects.filter(user=request.user).values_list('appointment_id', flat=True)
         appointments = Appointment.objects.filter(
             user=request.user,
-            status='approved'
+            status='approved',
+            checked_in=True  # ← DODAJ OVO! Samo check-in rezervacije
         ).exclude(id__in=reviewed_appointments).select_related('hall')
         
         serializer = AppointmentSerializer(appointments, many=True)
         return Response(serializer.data)
-    
 
 
 

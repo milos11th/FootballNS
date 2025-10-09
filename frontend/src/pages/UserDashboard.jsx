@@ -17,23 +17,34 @@ import ReviewSection from "../components/ReviewSection";
 function UserDashboard() {
   const { user } = useAuth();
   const [appointments, setAppointments] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const handleCheckIn = async (appointmentId) => {
+    try {
+      await api.post(`/appointments/${appointmentId}/checkin/`);
+      await showSuccess("Uspešno ste check-in-ovali!");
+      fetchMyAppointments();
+      fetchMyReviews(); // Osveži i recenzije nakon check-in
+    } catch (err) {
+      console.error("Error checking in:", err);
+      showApiError(err);
+    }
+  };
+
   useEffect(() => {
     fetchMyAppointments();
+    fetchMyReviews();
   }, []);
 
   const fetchMyAppointments = async () => {
     try {
       setLoading(true);
-
       const res = await api.get("/appointments/");
-
       const myAppointments = res.data.filter(
         (app) => app.user === user.username
       );
-
       setAppointments(myAppointments);
     } catch (err) {
       console.error("Error fetching appointments:", err);
@@ -42,6 +53,19 @@ function UserDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchMyReviews = async () => {
+    try {
+      const res = await api.get("/my-reviews/");
+      setReviews(res.data);
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  const hasReview = (appointmentId) => {
+    return reviews.some((review) => review.appointment === appointmentId);
   };
 
   const handleCancel = async (appointmentId) => {
@@ -90,6 +114,25 @@ function UserDashboard() {
       default:
         return status;
     }
+  };
+
+  const canCheckIn = (appointment) => {
+    if (appointment.checked_in) return false;
+    if (appointment.status !== "approved") return false;
+
+    const now = new Date();
+    const startTime = new Date(appointment.start);
+    const endTime = new Date(appointment.end);
+
+    const oneHourBefore = new Date(startTime.getTime() - 60 * 60 * 1000);
+    return now >= oneHourBefore && now <= endTime;
+  };
+
+  // Funkcija za dobijanje rezervacija koje mogu biti ocenjene
+  const getReviewableAppointments = () => {
+    return appointments.filter(
+      (appointment) => appointment.checked_in && !hasReview(appointment.id)
+    );
   };
 
   if (loading) {
@@ -154,11 +197,27 @@ function UserDashboard() {
                             }
                           )}{" "}
                           -{" "}
-                          {new Date(appointment.end).toLocaleTimeString("sr-RS", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(appointment.end).toLocaleTimeString(
+                            "sr-RS",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </p>
+                        {appointment.status === "approved" &&
+                          !appointment.checked_in && (
+                            <p className="text-info small mb-0">
+                              🕒 Check-in moguć od{" "}
+                              {new Date(
+                                new Date(appointment.start).getTime() -
+                                  60 * 60 * 1000
+                              ).toLocaleTimeString("sr-RS", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          )}
                       </div>
 
                       <div className="text-end">
@@ -175,6 +234,17 @@ function UserDashboard() {
                             ✅ Check-in
                           </Badge>
                         )}
+
+                        {appointment.checked_in &&
+                          !hasReview(appointment.id) && (
+                            <Badge
+                              bg="warning"
+                              className="ms-1"
+                              title="Možete ostaviti recenziju"
+                            >
+                              📝 Oceni
+                            </Badge>
+                          )}
                       </div>
                     </div>
 
@@ -184,16 +254,36 @@ function UserDashboard() {
                         {new Date(appointment.start).toLocaleString("sr-RS")}
                       </small>
 
-                      {(appointment.status === "pending" ||
-                        appointment.status === "approved") && (
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => handleCancel(appointment.id)}
-                        >
-                          🗑️ Otkaži
-                        </Button>
-                      )}
+                      <div>
+                        {canCheckIn(appointment) && (
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => handleCheckIn(appointment.id)}
+                            className="me-2"
+                          >
+                            ✅ Check-in
+                          </Button>
+                        )}
+
+                        {appointment.checked_in && (
+                          <Badge bg="success" className="me-2">
+                            ✅ Checked-in
+                          </Badge>
+                        )}
+
+                        {(appointment.status === "pending" ||
+                          (appointment.status === "approved" &&
+                            !appointment.checked_in)) && (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleCancel(appointment.id)}
+                          >
+                            🗑️ Otkaži
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </Card.Body>
                 </Card>
@@ -201,7 +291,11 @@ function UserDashboard() {
             ))}
           </Row>
 
-     
+          {/* Prosleđivanje podataka ReviewSection komponenti */}
+          <ReviewSection
+            reviewableAppointments={getReviewableAppointments()}
+            onReviewAdded={fetchMyReviews}
+          />
         </>
       )}
     </Container>

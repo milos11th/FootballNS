@@ -1,111 +1,272 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
-import api from '../api';
-import ReviewForm from './ReviewForm';
-import { showApiError } from '../utils/sweetAlert';
+import React, { useState, useEffect } from "react";
+import { Card, Form, Button, Alert, Spinner } from "react-bootstrap";
+import api from "../api";
+import { showSuccess, showApiError } from "../utils/sweetAlert";
 
-const ReviewSection = () => {
-  const [reviewableAppointments, setReviewableAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [error, setError] = useState('');
+const ReviewSection = ({
+  reviewableAppointments = [],
+  onReviewAdded,
+  hallId = null,
+}) => {
+  const [selectedAppointment, setSelectedAppointment] = useState("");
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [internalReviewableAppointments, setInternalReviewableAppointments] =
+    useState([]);
 
+  // Ako nisu prosleđeni reviewableAppointments, učitaj ih samostalno
   useEffect(() => {
-    fetchReviewableAppointments();
-  }, []);
+    if (reviewableAppointments.length === 0) {
+      fetchReviewableAppointments();
+    }
+  }, [reviewableAppointments, hallId]);
 
   const fetchReviewableAppointments = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/reviewable-appointments/');
-      setReviewableAppointments(res.data);
+      let url = "/reviewable-appointments/";
+
+      // Ako je prosleđen hallId, filtriraj samo za tu halu
+      if (hallId) {
+        url = `/reviewable-appointments/?hall=${hallId}`;
+      }
+
+      const response = await api.get(url);
+      setInternalReviewableAppointments(response.data);
     } catch (err) {
-      console.error('Error fetching reviewable appointments:', err);
-      setError('Greška pri učitavanju podataka za ocenjivanje');
-      showApiError(err);
+      console.error("Error fetching reviewable appointments:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenReviewForm = (appointment) => {
-    setSelectedAppointment(appointment);
-    setShowReviewForm(true);
+  // Koristi prosleđene appointments ili interne
+  const appointmentsToUse =
+    reviewableAppointments.length > 0
+      ? reviewableAppointments
+      : internalReviewableAppointments;
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (!selectedAppointment) {
+      alert("Molimo odaberite rezervaciju za ocenjivanje");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Pronađi odabrani appointment da dobijemo hall_id
+      const selectedApp = appointmentsToUse.find(
+        (app) => app.id.toString() === selectedAppointment
+      );
+
+      if (!selectedApp) {
+        throw new Error("Odabrana rezervacija nije pronađena");
+      }
+
+      // Sada šaljemo i hall polje koje backend zahteva
+      const reviewData = {
+        appointment: parseInt(selectedAppointment),
+        hall: selectedApp.hall, // hall_id iz appointmenta
+        rating: parseInt(rating),
+        comment: comment.trim() || "",
+      };
+
+      console.log("📤 Šaljem recenziju:", reviewData);
+
+      const response = await api.post("/reviews/create/", reviewData);
+
+      console.log("✅ Odgovor od servera:", response.data);
+
+      await showSuccess("Recenzija uspešno poslata!");
+
+      // Reset form
+      setSelectedAppointment("");
+      setRating(5);
+      setComment("");
+
+      // Obavesti parent komponentu da je dodata recenzija
+      if (onReviewAdded) {
+        onReviewAdded();
+      } else {
+        // Ako nema callback-a, osveži interne podatke
+        fetchReviewableAppointments();
+      }
+    } catch (err) {
+      console.error("❌ Error submitting review:", err);
+      console.error("📊 Response data:", err.response?.data);
+
+      // Prikaži specifičnu grešku korisniku
+      if (err.response?.data) {
+        const errorData = err.response.data;
+        let errorMessage = "Došlo je do greške pri slanju recenzije";
+
+        if (errorData.hall) {
+          errorMessage = `Greška sa halom: ${errorData.hall.join(", ")}`;
+        } else if (errorData.non_field_errors) {
+          errorMessage = errorData.non_field_errors.join(", ");
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail;
+        }
+
+        alert(errorMessage);
+      } else {
+        showApiError(err);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleReviewSubmitted = () => {
-    fetchReviewableAppointments(); // Osveži listu nakon ocenjivanja
-  };
+  const selectedAppDetails = appointmentsToUse.find(
+    (app) => app.id.toString() === selectedAppointment
+  );
 
-  if (loading) {
+  if (loading && appointmentsToUse.length === 0) {
     return (
       <Card className="mt-4">
         <Card.Body className="text-center">
-          <Spinner animation="border" size="sm" className="me-2" />
-          Učitavanje...
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-2 text-muted">
+            Učitavanje rezervacija za ocenjivanje...
+          </p>
         </Card.Body>
       </Card>
     );
   }
 
   return (
-    <div className="mt-4">
-      {error && <Alert variant="danger">{error}</Alert>}
+    <Card className="mt-4">
+      <Card.Body>
+        <h5 className="card-title">⭐ Ocenite Vaše Posete</h5>
+        <p className="text-muted">
+          Podelite svoje iskustvo sa drugim korisnicima
+        </p>
 
-      {reviewableAppointments.length > 0 ? (
-        <Card className="mb-4 border-warning">
-          <Card.Header className="bg-warning text-dark">
-            <h5 className="mb-0">⭐ Čeka se vaša ocena</h5>
-          </Card.Header>
-          <Card.Body>
-            <p className="text-muted mb-3">
-              Ocenite vaše iskustvo sa odobrenih rezervacija:
-            </p>
-            <Row>
-              {reviewableAppointments.map((appointment) => (
-                <Col md={6} key={appointment.id} className="mb-3">
-                  <div className="border rounded p-3 d-flex justify-content-between align-items-center">
-                    <div>
-                      <strong>{appointment.hall_name}</strong>
-                      <div className="text-muted small">
-                        {new Date(appointment.start).toLocaleDateString('sr-RS')} •{' '}
-                        {new Date(appointment.start).toLocaleTimeString('sr-RS', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={() => handleOpenReviewForm(appointment)}
-                    >
-                      Oceni
-                    </Button>
+        {appointmentsToUse.length === 0 ? (
+          <Alert variant="info">
+            <strong>ℹ️ Nema rezervacija za ocenjivanje</strong>
+            <br />
+            Možete oceniti samo termine na koje ste došli (check-in) i koje
+            niste već ocenili.
+          </Alert>
+        ) : (
+          <form onSubmit={handleSubmitReview}>
+            <div className="mb-3">
+              <Form.Label>
+                <strong>Odaberite rezervaciju:</strong>
+              </Form.Label>
+              <Form.Select
+                value={selectedAppointment}
+                onChange={(e) => setSelectedAppointment(e.target.value)}
+                required
+              >
+                <option value="">-- Izaberite termin --</option>
+                {appointmentsToUse.map((appointment) => (
+                  <option key={appointment.id} value={appointment.id}>
+                    🏟️ {appointment.hall_name} -{" "}
+                    {new Date(appointment.start).toLocaleDateString("sr-RS")}{" "}
+                    {new Date(appointment.start).toLocaleTimeString("sr-RS", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+
+            {selectedAppointment && selectedAppDetails && (
+              <>
+                {/* Prikaži detalje odabrane rezervacije */}
+                <Alert variant="light" className="small">
+                  <strong>Odabrana rezervacija:</strong>
+                  <br />
+                  Hala: <strong>{selectedAppDetails.hall_name}</strong>
+                  <br />
+                  Datum:{" "}
+                  {new Date(selectedAppDetails.start).toLocaleDateString(
+                    "sr-RS"
+                  )}
+                  <br />
+                  Vreme:{" "}
+                  {new Date(selectedAppDetails.start).toLocaleTimeString(
+                    "sr-RS",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}{" "}
+                  -{" "}
+                  {new Date(selectedAppDetails.end).toLocaleTimeString(
+                    "sr-RS",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
+                </Alert>
+
+                <div className="mb-3">
+                  <Form.Label>
+                    <strong>Ocena (1-5 zvezdica):</strong>
+                  </Form.Label>
+                  <div>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Button
+                        key={star}
+                        variant={rating >= star ? "warning" : "outline-warning"}
+                        onClick={() => setRating(star)}
+                        type="button"
+                        className="me-1"
+                      >
+                        {star} ⭐
+                      </Button>
+                    ))}
                   </div>
-                </Col>
-              ))}
-            </Row>
-          </Card.Body>
-        </Card>
-      ) : (
-        <Card className="mb-4">
-          <Card.Body className="text-center text-muted">
-            <p>🎉 Nemate rezervacija koje čekaju ocenu!</p>
-            <small>Sve vaše odobrene rezervacije su ocenjene.</small>
-          </Card.Body>
-        </Card>
-      )}
+                </div>
 
-      {/* Review Form Modal */}
-      <ReviewForm
-        show={showReviewForm}
-        onHide={() => setShowReviewForm(false)}
-        appointment={selectedAppointment}
-        onReviewSubmitted={handleReviewSubmitted}
-      />
-    </div>
+                <div className="mb-3">
+                  <Form.Label>
+                    <strong>Komentar (opciono):</strong>
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Podelite svoje iskustvo sa halom..."
+                    maxLength={500}
+                  />
+                  <Form.Text className="text-muted">
+                    {comment.length}/500 karaktera
+                  </Form.Text>
+                </div>
+
+                <div className="d-grid">
+                  <Button variant="success" type="submit" disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Slanje...
+                      </>
+                    ) : (
+                      "📝 Pošalji Recenziju"
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+          </form>
+        )}
+      </Card.Body>
+    </Card>
   );
 };
 
