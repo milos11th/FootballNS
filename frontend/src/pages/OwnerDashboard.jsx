@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -24,7 +23,6 @@ export default function OwnerDashboard() {
   const [newReviewsCount, setNewReviewsCount] = useState(0);
   const [hasMarkedAsSeen, setHasMarkedAsSeen] = useState(false);
 
-  // redirect / protect route
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -36,7 +34,6 @@ export default function OwnerDashboard() {
     }
   }, [user, authLoading, navigate]);
 
-  // Fetch owner's halls
   const fetchMyHalls = async () => {
     setError(null);
     try {
@@ -52,47 +49,42 @@ export default function OwnerDashboard() {
     }
   };
 
-  // Check for new reviews
   const checkNewReviews = async () => {
     try {
-      const res = await api.get('/owner/reviews/');
+      const res = await api.get("/owner/reviews/");
       setNewReviewsCount(res.data.unseen_count || 0);
     } catch (err) {
-      console.error('Greška pri proveri novih recenzija:', err);
+      console.error("Greška pri proveri novih recenzija:", err);
     }
   };
 
-  // Funkcija koja se poziva kada owner vidi recenzije
   const handleReviewsSeen = async () => {
     if (newReviewsCount > 0 && !hasMarkedAsSeen) {
       try {
-        await api.post('/owner/reviews/');
+        await api.post("/owner/reviews/");
         setNewReviewsCount(0);
         setHasMarkedAsSeen(true);
       } catch (err) {
-        console.error('Greška pri označavanju recenzija:', err);
+        console.error("Greška pri označavanju recenzija:", err);
       }
     }
   };
 
-  // Handler za promenu taba
   const handleTabSelect = (tab) => {
     setActiveTab(tab);
-    
+
     // Ako se selektuje tab Recenzije, označi kao pročitano
     if (tab === "reviews") {
       handleReviewsSeen();
     }
   };
 
-  // initial load
   useEffect(() => {
     fetchMyHalls();
   }, []);
 
-  // Set up interval for checking new reviews
   useEffect(() => {
-    if (user && user.role === 'owner') {
+    if (user && user.role === "owner") {
       checkNewReviews();
       // Proveri na svakih 5 minuta
       const interval = setInterval(checkNewReviews, 5 * 60 * 1000);
@@ -147,7 +139,11 @@ export default function OwnerDashboard() {
           </div>
         </Tab>
 
-        <Tab eventKey="availability" title="➕ Dostupnost" className="border-0">
+        <Tab
+          eventKey="availability"
+          title="➕ Radno vreme hala"
+          className="border-0"
+        >
           <div className="mt-3">
             <OwnerAvailability myHalls={myHalls} refreshHalls={fetchMyHalls} />
           </div>
@@ -176,25 +172,22 @@ export default function OwnerDashboard() {
           </div>
         </Tab>
 
-        <Tab 
-          eventKey="reviews" 
+        <Tab
+          eventKey="reviews"
           title={
             <>
-              ⭐ Recenzije 
+              ⭐ Recenzije
               {newReviewsCount > 0 && (
                 <Badge bg="danger" className="ms-1">
                   {newReviewsCount}
                 </Badge>
               )}
             </>
-          } 
+          }
           className="border-0"
         >
           <div className="mt-3">
-            <OwnerReviews 
-              myHalls={myHalls} 
-              onReviewsSeen={handleReviewsSeen}
-            />
+            <OwnerReviews myHalls={myHalls} onReviewsSeen={handleReviewsSeen} />
           </div>
         </Tab>
 
@@ -203,7 +196,7 @@ export default function OwnerDashboard() {
             <OwnerAppointmentHistory />
           </div>
         </Tab>
-        
+
         <Tab eventKey="reports" title="📈 Izveštaji" className="border-0">
           <div className="mt-3">
             <OwnerMonthlyReports />

@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button, Row, Col, Alert } from 'react-bootstrap';
-import api from '../api';
-import { showSuccess, showApiError } from '../utils/sweetAlert';
+import React, { useState, useEffect } from "react";
+import { Modal, Form, Button, Row, Col, Alert } from "react-bootstrap";
+import api from "../api";
+import { showSuccess, showApiError } from "../utils/sweetAlert";
 
 const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
   const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [showComment, setShowComment] = useState(false);
 
   useEffect(() => {
     if (show) {
       setRating(5);
-      setComment('');
-      setError('');
+      setComment("");
+      setError("");
       setShowComment(false);
     }
   }, [show, appointment]);
@@ -24,22 +24,22 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
     if (!appointment) return;
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      await api.post('/reviews/create/', {
+      await api.post("/reviews/create/", {
         hall: appointment.hall,
         appointment: appointment.id,
         rating: rating,
-        comment: comment
+        comment: comment,
       });
 
-      await showSuccess('Hvala Vam! Vaša ocena je uspešno sačuvana.');
+      await showSuccess("Hvala Vam! Vaša ocena je uspešno sačuvana.");
       onReviewSubmitted();
       onHide();
     } catch (err) {
-      console.error('Error submitting review:', err);
-      setError(err.response?.data?.detail || 'Greška pri slanju ocene');
+      console.error("Error submitting review:", err);
+      setError(err.response?.data?.detail || "Greška pri slanju ocene");
       showApiError(err);
     } finally {
       setLoading(false);
@@ -51,18 +51,18 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
 
     setLoading(true);
     try {
-      await api.post('/reviews/create/', {
+      await api.post("/reviews/create/", {
         hall: appointment.hall,
         appointment: appointment.id,
         rating: quickRating,
-        comment: '' // Bez komentara za brzo ocenjivanje
+        comment: "", // Bez komentara za brzo ocenjivanje
       });
 
-      await showSuccess('Hvala Vam! Vaša ocena je uspešno sačuvana.');
+      await showSuccess("Hvala Vam! Vaša ocena je uspešno sačuvana.");
       onReviewSubmitted();
       onHide();
     } catch (err) {
-      console.error('Error submitting review:', err);
+      console.error("Error submitting review:", err);
       showApiError(err);
     } finally {
       setLoading(false);
@@ -78,15 +78,21 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
       </Modal.Header>
       <Form onSubmit={handleSubmit}>
         <Modal.Body className="pt-0">
-          {error && <Alert variant="danger" className="py-2">{error}</Alert>}
-          
+          {error && (
+            <Alert variant="danger" className="py-2">
+              {error}
+            </Alert>
+          )}
+
           <div className="mb-3">
-            <p className="mb-1 small"><strong>Hala:</strong> {appointment.hall_name}</p>
+            <p className="mb-1 small">
+              <strong>Hala:</strong> {appointment.hall_name}
+            </p>
             <p className="mb-0 small text-muted">
-              {new Date(appointment.start).toLocaleDateString('sr-RS')} •{' '}
-              {new Date(appointment.start).toLocaleTimeString('sr-RS', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+              {new Date(appointment.start).toLocaleDateString("sr-RS")} •{" "}
+              {new Date(appointment.start).toLocaleTimeString("sr-RS", {
+                hour: "2-digit",
+                minute: "2-digit",
               })}
             </p>
           </div>
@@ -98,36 +104,36 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
                 <Button
                   key={star}
                   type="button"
-                  variant={rating >= star ? 'warning' : 'outline-warning'}
+                  variant={rating >= star ? "warning" : "outline-warning"}
                   className="d-flex flex-column align-items-center"
                   onClick={() => setRating(star)}
-                  style={{ 
-                    width: '50px', 
-                    height: '50px',
-                    fontSize: '0.8rem',
-                    padding: '5px'
+                  style={{
+                    width: "50px",
+                    height: "50px",
+                    fontSize: "0.8rem",
+                    padding: "5px",
                   }}
                   disabled={loading}
                 >
-                  <span style={{ fontSize: '1.2rem' }}>{star}</span>
+                  <span style={{ fontSize: "1.2rem" }}>{star}</span>
                   <span>⭐</span>
                 </Button>
               ))}
             </div>
             <Form.Text className="small text-muted text-center d-block mt-1">
-              {rating === 1 && '❌ Veoma loše'}
-              {rating === 2 && '👎 Loše'}
-              {rating === 3 && '😐 Prosečno'}
-              {rating === 4 && '👍 Dobro'}
-              {rating === 5 && '💯 Odlično'}
+              {rating === 1 && "❌ Veoma loše"}
+              {rating === 2 && "👎 Loše"}
+              {rating === 3 && "😐 Prosečno"}
+              {rating === 4 && "👍 Dobro"}
+              {rating === 5 && "💯 Odlično"}
             </Form.Text>
           </Form.Group>
 
           {!showComment ? (
             <div className="text-center mb-2">
-              <Button 
-                variant="link" 
-                size="sm" 
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => setShowComment(true)}
                 className="text-decoration-none"
               >
@@ -136,7 +142,9 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
             </div>
           ) : (
             <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold">Komentar (opciono):</Form.Label>
+              <Form.Label className="small fw-bold">
+                Komentar (opciono):
+              </Form.Label>
               <Form.Control
                 as="textarea"
                 rows={2}
@@ -152,7 +160,6 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
             </Form.Group>
           )}
 
-          {/* Brzo ocenjivanje dugmad */}
           <div className="d-flex gap-2 justify-content-center mb-2">
             <Button
               variant="outline-primary"
@@ -175,16 +182,16 @@ const ReviewForm = ({ show, onHide, appointment, onReviewSubmitted }) => {
           </div>
         </Modal.Body>
         <Modal.Footer className="pt-0">
-          <Button variant="outline-secondary" size="sm" onClick={onHide} disabled={loading}>
-            Odustani
-          </Button>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="outline-secondary"
             size="sm"
-            type="submit" 
+            onClick={onHide}
             disabled={loading}
           >
-            {loading ? 'Slanje...' : 'Pošalji'}
+            Odustani
+          </Button>
+          <Button variant="primary" size="sm" type="submit" disabled={loading}>
+            {loading ? "Slanje..." : "Pošalji"}
           </Button>
         </Modal.Footer>
       </Form>

@@ -17,12 +17,11 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch availabilities based on selected hall - SAMO ZA OWNEROVE HALE
+  // Dohvati avalability za odabranu halu
   const fetchAvailabilities = async (hallId = "all") => {
     setLoading(true);
     setError(null);
 
-    // Ako nema hala, odmah vrati praznu listu
     if (myHalls.length === 0) {
       setAvailabilities([]);
       setLoading(false);
@@ -55,14 +54,14 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
     }
   };
 
-  // Handle hall selection change
+  // Funkcija za preuzimanje dostupnosti za odabranu halu
   const handleHallChange = (e) => {
     const hallId = e.target.value;
     setSelectedHall(hallId);
     fetchAvailabilities(hallId);
   };
 
-  // Handle delete availability
+  // Funkcija za brisanje dostupnosti
   const handleDelete = async (availabilityId) => {
     const result = await showConfirm(
       "Brisanje dostupnosti",
@@ -74,7 +73,7 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
     try {
       await api.delete(`/availabilities/${availabilityId}/`);
       await showSuccess("Dostupnost uspešno obrisana!");
-      // Refresh the list after deletion
+      // Osvježi dostupnosti nakon brisanja
       fetchAvailabilities(selectedHall);
     } catch (err) {
       console.error("Error deleting availability:", err);
@@ -82,7 +81,7 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
     }
   };
 
-  // Format date for display
+  // Formatiraj datum za prikaz
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("sr-RS", {
@@ -93,7 +92,7 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
     });
   };
 
-  // Format time for display
+  // Formatiraj vreme za prikaz
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString("sr-RS", {
@@ -102,7 +101,7 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
     });
   };
 
-  // Initial load - osveži kada se promene myHalls
+  //  osveži kada se promene myHalls
   useEffect(() => {
     fetchAvailabilities("all");
   }, [myHalls]);
@@ -133,7 +132,6 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
           </Form.Text>
         </Form.Group>
 
-        {/* Loading State */}
         {loading && (
           <div className="text-center">
             <Spinner animation="border" role="status" className="me-2" />
@@ -141,10 +139,8 @@ export default function OwnerAvailabilityList({ myHalls, refreshHalls }) {
           </div>
         )}
 
-        {/* Error State */}
         {error && <Alert variant="danger">{error}</Alert>}
 
-        {/* Empty State */}
         {!loading && !error && availabilities.length === 0 && (
           <Alert variant="info">
             {selectedHall === "all"

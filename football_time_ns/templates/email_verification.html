@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verifikacija Emaila - Football Time</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .container {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+      }
+
+      .success-icon {
+        font-size: 64px;
+        color: #28a745;
+        margin-bottom: 20px;
+      }
+
+      .error-icon {
+        font-size: 64px;
+        color: #dc3545;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 28px;
+      }
+
+      p {
+        color: #666;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        font-size: 16px;
+      }
+
+      .btn {
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 12px 30px;
+        text-decoration: none;
+        border-radius: 25px;
+        font-weight: bold;
+        margin-top: 20px;
+        transition: background 0.3s;
+      }
+
+      .btn:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+      }
+
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eee;
+        color: #888;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      {% if success %}
+      <div class="success-icon">✅</div>
+      <h1>Uspešna Verifikacija!</h1>
+      <p><strong>Čestitamo {{ user_first_name }}!</strong></p>
+      <p>
+        Vaš email je uspešno verifikovan. Sada možete da se prijavite na svoj
+        nalog i počnete da koristite Football Time platformu.
+      </p>
+      <a href="http://localhost:5173/login" class="btn">Prijavi se</a>
+      {% else %}
+      <div class="error-icon">❌</div>
+      <h1>Verifikacija Neuspešna</h1>
+      <p>{{ error_message }}</p>
+      <p>
+        Molimo vas da zatražite novi verifikacioni link ili kontaktirate
+        podršku.
+      </p>
+      <a href="http://localhost:5173/register" class="btn"
+        >Registruj se ponovo</a
+      >
+      {% endif %}
+
+      <div class="footer">
+        <p>FootballTimeNs Team<br />Hvala što koristite našu platformu!</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -113,7 +113,6 @@ export default function HallEditModal({ show, onHide, hall, onSaved }) {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {/* Ostali form elementi ostaju isti */}
           <Form.Group className="mb-2">
             <Form.Label>Naziv</Form.Label>
             <Form.Control

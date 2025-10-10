@@ -1,7 +1,6 @@
-// OwnerReviews.jsx
-import React, { useState, useEffect } from 'react';
-import { Card, Badge, Alert, Spinner, Button, Row, Col } from 'react-bootstrap';
-import api from '../api';
+import React, { useState, useEffect } from "react";
+import { Card, Badge, Alert, Spinner, Button, Row, Col } from "react-bootstrap";
+import api from "../api";
 
 export default function OwnerReviews({ myHalls, onReviewsSeen }) {
   const [reviews, setReviews] = useState([]);
@@ -11,11 +10,11 @@ export default function OwnerReviews({ myHalls, onReviewsSeen }) {
   const fetchReviews = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/owner/reviews/');
+      const res = await api.get("/owner/reviews/");
       setReviews(res.data.reviews || []);
     } catch (err) {
-      console.error('Greška pri učitavanju recenzija:', err);
-      setError('Greška pri učitavanju recenzija');
+      console.error("Greška pri učitavanju recenzija:", err);
+      setError("Greška pri učitavanju recenzija");
     } finally {
       setLoading(false);
     }
@@ -33,7 +32,7 @@ export default function OwnerReviews({ myHalls, onReviewsSeen }) {
   }, []);
 
   const renderStars = (rating) => {
-    return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+    return "⭐".repeat(rating) + "☆".repeat(5 - rating);
   };
 
   if (loading) {
@@ -59,9 +58,7 @@ export default function OwnerReviews({ myHalls, onReviewsSeen }) {
       </div>
 
       {reviews.length === 0 ? (
-        <Alert variant="info">
-          Trenutno nema recenzija za vaše hale
-        </Alert>
+        <Alert variant="info">Trenutno nema recenzija za vaše hale</Alert>
       ) : (
         <Row>
           {reviews.map((review) => (
@@ -78,16 +75,18 @@ export default function OwnerReviews({ myHalls, onReviewsSeen }) {
                       </Badge>
                     </div>
                     <small className="text-muted text-end">
-                      {new Date(review.created_at).toLocaleDateString('sr-RS')}
+                      {new Date(review.created_at).toLocaleDateString("sr-RS")}
                     </small>
                   </div>
-                  
-                  <p className="mb-1"><strong>Hala:</strong> {review.hall_name}</p>
-                  
+
+                  <p className="mb-1">
+                    <strong>Hala:</strong> {review.hall_name}
+                  </p>
+
                   <div className="text-warning mb-2">
                     {renderStars(review.rating)}
                   </div>
-                  
+
                   {review.comment && (
                     <div className="p-2 bg-light rounded">
                       <p className="mb-0 small">"{review.comment}"</p>

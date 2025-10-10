@@ -67,7 +67,6 @@ const ReviewSection = ({
         throw new Error("Odabrana rezervacija nije pronađena");
       }
 
-      // Sada šaljemo i hall polje koje backend zahteva
       const reviewData = {
         appointment: parseInt(selectedAppointment),
         hall: selectedApp.hall, // hall_id iz appointmenta
@@ -83,7 +82,7 @@ const ReviewSection = ({
 
       await showSuccess("Recenzija uspešno poslata!");
 
-      // Reset form
+      // Reset forma
       setSelectedAppointment("");
       setRating(5);
       setComment("");

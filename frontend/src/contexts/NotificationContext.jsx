@@ -7,7 +7,7 @@ const NotificationContext = createContext();
 
 export function NotificationProvider({ children }) {
   const { user } = useAuth();
-  const seenNotificationsRef = useRef(new Set()); // Pamti šta je već viđeno
+  const seenNotificationsRef = useRef(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -51,7 +51,7 @@ export function NotificationProvider({ children }) {
               showConfirmButton: false,
             });
 
-            // Označi kao viđeno
+            // Označi notifikacije kao viđene
             newPending.forEach((app) => {
               seenNotificationsRef.current.add(`owner_pending_${app.id}`);
             });
@@ -128,7 +128,7 @@ export function NotificationProvider({ children }) {
                 saveSeenNotifications();
               },
               newApproved.length > 0 ? 4000 : 2000
-            ); // Ako ima i approved, delay
+            ); // Ako su odobrene notifikacije, prikaži ih 4 sekunde nakon odbijene
           }
         }
       } catch (error) {
@@ -144,8 +144,8 @@ export function NotificationProvider({ children }) {
       );
     };
 
-    // Pokreni notifikacije nakon 2 sekunde
-    setTimeout(showNewNotifications, 2000);
+    // Pokreni notifikacije nakon 1 sekunde
+    setTimeout(showNewNotifications, 1000);
   }, [user]);
 
   return (

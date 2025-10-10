@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly,AllowAny
 from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.db import transaction
 from datetime import timedelta, datetime,time, timezone
 from django.http import HttpResponse
@@ -17,7 +17,7 @@ from django.utils import timezone
 import io
 from .models import Hall, Appointment, Availability, HallImage,Profile, Review
 from .serializer import (
-    ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, ReviewSerializer, UserSerializer,
+    AvailabilityBulkSerializer, ChangePasswordSerializer, HallImageSerializer, HallSerializer, RegisterSerializer, ReviewSerializer, UserSerializer,
     AvailabilitySerializer, AppointmentSerializer, AppointmentCreateSerializer
 )
 from .permissions import IsOwnerRole
@@ -27,9 +27,6 @@ from django.shortcuts import redirect
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
-
-
-
 
 
 
@@ -54,7 +51,7 @@ class HallCreate(APIView):
             return Response(HallSerializer(hall).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Hall detail =
+# Hall detail 
 class HallDetail(APIView):
     
     def get_hall_by_pk(self, pk):
@@ -68,7 +65,7 @@ class HallDetail(APIView):
         if not hall:
             return Response({'error': 'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = HallSerializer(hall, context={'request': request})  # <-- context dodan
+        serializer = HallSerializer(hall, context={'request': request})  
         return Response(serializer.data)
 
     def put(self, request, pk):
@@ -77,7 +74,7 @@ class HallDetail(APIView):
             return Response({'error': 'Hall not found'}, status=status.HTTP_404_NOT_FOUND)
 
         self.check_object_permissions(request, hall)
-        serializer = HallSerializer(hall, data=request.data, context={'request': request})  # <-- context dodan
+        serializer = HallSerializer(hall, data=request.data, context={'request': request})  
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -102,7 +99,7 @@ class MyHallsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Vrati hale koje pripadaju samo ulogovanom korisniku (owneru)
+        # Vrati hale koje pripadaju samo  owneru
         halls = Hall.objects.filter(owner=request.user)
         serializer = HallSerializer(halls, many=True)
         return Response(serializer.data)
@@ -116,7 +113,7 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
 
 class MeView(APIView):
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticated]
     def get(self, request):
         if not request.user or not request.user.is_authenticated:
             return Response({'detail':'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -170,6 +167,23 @@ class AvailabilityCreate(APIView):
             
             return Response(AvailabilitySerializer(availability).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 class AvailabilityList(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -191,7 +205,7 @@ class AvailabilityList(APIView):
         serializer = AvailabilitySerializer(qs, many=True)
         return Response(serializer.data)
 
-# compute helpers
+
 def intervals_overlap(a_start, a_end, b_start, b_end):
     return a_start < b_end and b_start < a_end
 
@@ -213,8 +227,9 @@ def compute_free_intervals(availabilities, busy_intervals):
         free.extend(parts)
     return [(s,e) for s,e in free if s < e]
 
-# Hall free slots for a date or range
 
+
+# Hall free slots for a date or range
 class HallFreeSlots(APIView):
     permission_classes = []
 
@@ -227,7 +242,7 @@ class HallFreeSlots(APIView):
             return Response({'error':'Provide date=YYYY-MM-DD'}, status=400)
 
         try:
-            # Parsiraj datum (bez vremena)
+            
             naive_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             
             # Kreiraj datetime objekte za ceo dan u Belgrade timezone
@@ -256,9 +271,9 @@ class HallFreeSlots(APIView):
 
         free = compute_free_intervals(avail_list, busy_list)
 
-        # slotovi po 1h - DODAJ PROVERU ZA TRENUTNO VREME
+        # slotovi po 1h 
         slots = []
-        current_time = timezone.now().astimezone(tz)  # Trenutno vreme u Belgrade timezone
+        current_time = timezone.now().astimezone(tz)  
         
         for s,e in free:
             cur = s
@@ -286,7 +301,7 @@ class HallFreeSlots(APIView):
         return Response({
             'free_intervals': [(s.isoformat(), e.isoformat()) for s,e in free],
             'hour_slots': slots,
-            'current_time': current_time.isoformat()  # Dodaj trenutno vreme za debug
+            'current_time': current_time.isoformat()  
         })
 
 # Create appointment (user) -> pending
@@ -303,12 +318,12 @@ class AppointmentCreateView(APIView):
         start = serializer.validated_data['start']
         end = serializer.validated_data['end']
 
-        # 1) must be inside availability
+        # 1) Mora biti unutar dostupnosti
         avail_exists = Availability.objects.filter(hall=hall, start__lte=start, end__gte=end).exists()
         if not avail_exists:
             return Response({'error':'Requested time is outside hall availability'}, status=400)
 
-        # 2) cannot overlap with approved appointments
+        # 2) Ne sme da se preklapa sa odobrenim terminima
         overlap = Appointment.objects.filter(
             hall=hall,
             status='approved',
@@ -318,13 +333,13 @@ class AppointmentCreateView(APIView):
         if overlap:
             return Response({'error':'Requested time conflicts with an approved appointment'}, status=400)
 
-        # create pending
+        
         appointment = Appointment.objects.create(
             user=request.user, hall=hall, start=start, end=end, status='pending'
         )
         return Response(AppointmentSerializer(appointment).data, status=201)
 
-# Owner: list pending appointments for their hall
+# Owner: lista za odobravanje termina
 class OwnerPendingAppointments(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
 
@@ -348,7 +363,7 @@ class OwnerApproveAppointment(APIView):
             return Response({'error':'Not your hall'}, status=403)
 
         if action == 'approve':
-            # double check no overlap with other approved
+            # dupla provera za preklapanje
             if Appointment.objects.filter(
                 hall=appointment.hall, status='approved',
                 start__lt=appointment.end, end__gt=appointment.start
@@ -364,8 +379,8 @@ class OwnerApproveAppointment(APIView):
         else:
             return Response({'error':'action must be approve or reject'}, status=400)
 
-# Check-in (user or owner)
 
+# Check-in (user or owner)
 class AppointmentCheckIn(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -393,7 +408,7 @@ class AppointmentCheckIn(APIView):
             print(f"   End: {end_time}")
             
             # Check-in moguć samo 1 sat pre početka i tokom trajanja termina
-            one_hour_before = start_time - timedelta(hours=1)  # ← KORISTI timedelta direktno
+            one_hour_before = start_time - timedelta(hours=1)  
             can_check_in = (now >= one_hour_before) and (now <= end_time)
             
             print(f"   Can check in: {can_check_in}")
@@ -440,7 +455,7 @@ class AppointmentDelete(APIView):
 
 # Admin / Public listings as needed
 class AppointmentList(APIView):
-    permission_classes = []  # public
+    permission_classes = []  
 
     def get(self, request):
         hall_q = request.query_params.get('hall', None)
@@ -483,7 +498,7 @@ class HallImagesCreate(APIView):
         serializer = HallImageSerializer(created, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# NEW: delete single HallImage by pk
+
 class HallImageDelete(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
 
@@ -522,32 +537,61 @@ class OwnerAllAppointments(APIView):
 
 
 
+from django.utils import timezone
+import pytz
+
 class OwnerExportPDF(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
 
     def get(self, request):
-        # Get reservations for owner's halls
+        
         halls = Hall.objects.filter(owner=request.user)
         appointments = Appointment.objects.filter(
             hall__in=halls
         ).select_related('hall', 'user').order_by('-start')
+        
+        
+        cancellation_stats = {}
+        for appointment in appointments:
+            if appointment.status == 'cancelled':
+                username = appointment.user.username
+                if username not in cancellation_stats:
+                    cancellation_stats[username] = {
+                        'count': 0,
+                        'last_cancellation': appointment.start
+                    }
+                cancellation_stats[username]['count'] += 1
+                if appointment.start > cancellation_stats[username]['last_cancellation']:
+                    cancellation_stats[username]['last_cancellation'] = appointment.start
+        
+        # Sortiraj po broju otkazivanja (opadajuće)
+        top_cancellers = sorted(
+            [(username, data) for username, data in cancellation_stats.items()],
+            key=lambda x: x[1]['count'],
+            reverse=True
+        )[:5]  # Top 5 korisnika
         
         # Create PDF
         buffer = io.BytesIO()
         p = canvas.Canvas(buffer, pagesize=A4)
         width, height = A4
         
+        
+        
+        belgrade_tz = pytz.timezone('Europe/Belgrade')
+        current_time = timezone.now().astimezone(belgrade_tz)
+        
         # Header
         p.setFont("Helvetica-Bold", 16)
         p.drawString(50, height - 50, "Izveštaj o rezervacijama")
         p.setFont("Helvetica", 12)
-        p.drawString(50, height - 70, f"Datum izveštaja: {datetime.now().strftime('%d.%m.%Y. %H:%M')}")
+        p.drawString(50, height - 70, f"Datum izveštaja: {current_time.strftime('%d.%m.%Y. %H:%M')}")
         p.drawString(50, height - 85, f"Vlasnik: {request.user.username}")
         p.drawString(50, height - 100, f"Ukupno hala: {halls.count()}")
         
-        y_position = height - 130
+        y_position = height - 200
         
-        # Table data - DODAJ CHECK-IN KOLONU
+        # Table data 
         data = [['Hala', 'Korisnik', 'Datum', 'Vreme', 'Status', 'Check-in', 'Cena']]
         
         total_price = 0
@@ -555,12 +599,15 @@ class OwnerExportPDF(APIView):
         checked_in_count = 0
         
         for appointment in appointments:
-            date_str = appointment.start.strftime('%d.%m.%Y.')
-            time_str = f"{appointment.start.strftime('%H:%M')} - {appointment.end.strftime('%H:%M')}"
+            
+            start_local = appointment.start.astimezone(belgrade_tz)
+            end_local = appointment.end.astimezone(belgrade_tz)
+            
+            date_str = start_local.strftime('%d.%m.%Y.')
+            time_str = f"{start_local.strftime('%H:%M')} - {end_local.strftime('%H:%M')}"
             price = appointment.hall.price
             
-            # CHECK-IN STATUS
-            checkin_status = "✅" if appointment.checked_in else "❌"
+            checkin_status = "✓" if appointment.checked_in else "x"
             
             data.append([
                 appointment.hall.name,
@@ -568,7 +615,7 @@ class OwnerExportPDF(APIView):
                 date_str,
                 time_str,
                 appointment.status,
-                checkin_status,  # CHECK-IN KOLONA
+                checkin_status,  
                 f"{price} RSD"
             ])
             
@@ -579,8 +626,8 @@ class OwnerExportPDF(APIView):
                     
             status_counts[appointment.status] += 1
         
-        # Create table
-        table = Table(data, colWidths=[70, 65, 55, 75, 45, 40, 50])  # Prilagodi širine
+        # Draw main table
+        table = Table(data, colWidths=[100, 65, 55, 75, 45, 40, 50])  
         table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -594,11 +641,11 @@ class OwnerExportPDF(APIView):
             ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#dee2e6'))
         ]))
         
-        # Draw table
+        
         table.wrapOn(p, width - 100, height)
         table.drawOn(p, 50, y_position - len(appointments) * 15 - 50)
         
-        # Statistics - DODAJ CHECK-IN STATISTIKU
+        # Osnovna statistika
         y_stats = y_position - len(appointments) * 15 - 80
         p.setFont("Helvetica-Bold", 10)
         p.drawString(50, y_stats, "Statistika:")
@@ -607,7 +654,7 @@ class OwnerExportPDF(APIView):
         stats = [
             f"Odobrene: {status_counts['approved']}",
             f"Check-in: {checked_in_count}/{status_counts['approved']}",
-            f"Na čekanju: {status_counts['pending']}",
+            f"Na cekanju: {status_counts['pending']}",
             f"Odbijene: {status_counts['rejected']}",
             f"Otkazane: {status_counts['cancelled']}",
             f"Ukupna vrednost (odobrene): {total_price} RSD"
@@ -616,18 +663,54 @@ class OwnerExportPDF(APIView):
         for i, stat in enumerate(stats):
             p.drawString(50, y_stats - 20 - (i * 15), stat)
         
+        
+        if top_cancellers:
+            y_cancellation = y_stats - 20 - (len(stats) * 15) - 30
+            
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(50, y_cancellation, "Korisnici sa najviše otkazivanja:")
+            p.setFont("Helvetica", 9)
+            
+            # Header za tabelu otkazivanja
+            p.drawString(50, y_cancellation - 20, "Korisnik")
+            p.drawString(150, y_cancellation - 20, "Broj otkazivanja")
+            p.drawString(250, y_cancellation - 20, "Poslednje otkazivanje")
+            
+            
+            p.line(50, y_cancellation - 22, 350, y_cancellation - 22)
+            
+            # Podaci o otkazivanjima
+            for i, (username, data) in enumerate(top_cancellers):
+                y_row = y_cancellation - 35 - (i * 15)
+                p.drawString(50, y_row, username)
+                p.drawString(150, y_row, str(data['count']))
+                
+                
+                last_cancel_local = data['last_cancellation'].astimezone(belgrade_tz)
+                p.drawString(250, y_row, last_cancel_local.strftime('%d.%m.%Y.'))
+                
+                
+                if data['count'] >= 3:
+                    p.setFont("Helvetica-Bold", 8)
+                    p.drawString(320, y_row, "Cesto otkazuje")
+                    p.setFont("Helvetica", 9)
+            
+            # Savet za vlasnike
+            y_advice = y_cancellation - 35 - (len(top_cancellers) * 15) - 15
+            p.setFont("Helvetica-Oblique", 8)
+            p.drawString(50, y_advice, "Savet: Korisnici sa 3+ otkazivanja mogu biti neozbiljni.")
+            p.setFont("Helvetica", 9)
+        
         p.showPage()
         p.save()
         
         buffer.seek(0)
         
-        # Create response with filename
-        filename = f"rezervacije_{request.user.username}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+        filename = f"rezervacije_{request.user.username}_{current_time.strftime('%Y%m%d_%H%M')}.pdf"
         response = HttpResponse(buffer, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        
         return response
-
+       
 
 class OwnerMonthlyStats(APIView):
     permission_classes = [IsAuthenticated, IsOwnerRole]
@@ -668,7 +751,7 @@ class OwnerMonthlyStats(APIView):
             pending_reservations = appointments.filter(status='pending').count()
             checked_in_reservations = appointments.filter(status='approved', checked_in=True).count()
             
-            # Calculate revenues
+            # Ukupna vrednost
             revenue = sum(float(app.hall.price) for app in appointments.filter(status='approved'))
             realized_revenue = sum(float(app.hall.price) for app in appointments.filter(status='approved', checked_in=True))
             
@@ -751,31 +834,44 @@ class ChangePasswordView(APIView):
 
 
 class VerifyEmailView(APIView):
-    permission_classes = [AllowAny]
-    
     def get(self, request, token):
         try:
+            
             profile = Profile.objects.get(verification_token=token)
             
-            if profile.email_verified:
-                # Redirect na login sa porukom
-                frontend_url = "http://localhost:3000/login?message=email_already_verified"
-                return redirect(frontend_url)
             
-            profile.email_verified = True
-            profile.verification_token = None
-            profile.save()
+            token_age = timezone.now() - profile.user.date_joined
+            if token_age.days > 1:  
+                return render(request, 'email_verification.html', {
+                    'success': False,
+                    'error_message': 'Verifikacioni link je istekao. Molimo vas da zatražite novi.'
+                })
+            
             
             user = profile.user
             user.is_active = True
             user.save()
             
-            # Redirect na login sa porukom o uspehu
-            frontend_url = "http://localhost:3000/login?message=email_verified"
-            return redirect(frontend_url)
+            
+            profile.email_verified = True
+            profile.verification_token = None  
+            profile.save()
+            
+            return render(request, 'email_verification.html', {
+                'success': True,
+                'user_first_name': user.first_name
+            })
             
         except Profile.DoesNotExist:
-            return HttpResponse("Nevažeći verifikacioni link.", status=400)
+            return render(request, 'email_verification.html', {
+                'success': False,
+                'error_message': 'Nevažeći verifikacioni link.'
+            })
+        except Exception as e:
+            return render(request, 'email_verification.html', {
+                'success': False,
+                'error_message': 'Došlo je do greške prilikom verifikacije.'
+            })
         
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -833,7 +929,7 @@ class UserReviewableAppointmentsView(APIView):
         appointments = Appointment.objects.filter(
             user=request.user,
             status='approved',
-            checked_in=True  # ← DODAJ OVO! Samo check-in rezervacije
+            checked_in=True  
         ).exclude(id__in=reviewed_appointments).select_related('hall')
         
         serializer = AppointmentSerializer(appointments, many=True)
@@ -865,3 +961,100 @@ class OwnerReviewsView(APIView):
         Review.objects.filter(hall__in=owner_halls, owner_seen=False).update(owner_seen=True)
         
         return Response({'message': 'Recenzije označene kao pročitane'})
+    
+
+
+
+
+class AvailabilityBulkCreate(APIView):
+    permission_classes = [IsAuthenticated, IsOwnerRole]
+    
+    def post(self, request):
+        serializer = AvailabilityBulkSerializer(data=request.data)
+        if serializer.is_valid():
+            hall = serializer.validated_data['hall']
+            start_date = serializer.validated_data['start_date']
+            end_date = serializer.validated_data['end_date']
+            start_time = serializer.validated_data['start_time']
+            end_time = serializer.validated_data['end_time']
+            days_of_week = serializer.validated_data.get('days_of_week', [0,1,2,3,4,5,6])
+            
+            
+            if hall.owner != request.user:
+                return Response({'error':'Not owner of this hall'}, status=status.HTTP_403_FORBIDDEN)
+            
+            created_availabilities = []
+            errors = []
+            
+            
+            tz = pytz.timezone("Europe/Belgrade")
+            
+            current_date = start_date
+            day_count = 0
+            created_count = 0
+            
+            while current_date <= end_date:
+                day_count += 1
+                weekday = current_date.weekday()  # Python: 0=Monday, 6=Sunday
+                
+                print(f"🔍 Proveravam {current_date} (Python weekday: {weekday})")
+                
+                if weekday in days_of_week:
+                    start_naive = datetime.combine(current_date, start_time)
+                    end_naive = datetime.combine(current_date, end_time)
+                    
+                    start_dt = tz.localize(start_naive)
+                    end_dt = tz.localize(end_naive)
+                    
+                    print(f"✅ Kreiram {current_date} - {start_dt} to {end_dt}")
+                    
+                    # Provera preklapanja
+                    overlapping = Availability.objects.filter(
+                        hall=hall,
+                        start__lt=end_dt,
+                        end__gt=start_dt
+                    ).exists()
+                    
+                    if not overlapping:
+                        try:
+                            availability = Availability.objects.create(
+                                hall=hall,
+                                start=start_dt,
+                                end=end_dt
+                            )
+                            created_availabilities.append(availability)
+                            created_count += 1
+                            print(f"USPEO: Kreiran za {current_date}")
+                        except Exception as e:
+                            errors.append(f"Greška za {current_date.strftime('%d.%m.%Y.')}: {str(e)}")
+                            print(f"❌ GREŠKA: {current_date} - {e}")
+                    else:
+                        errors.append(f"Preklapanje za {current_date.strftime('%d.%m.%Y.')}")
+                        print(f" PRESKOČEN: Preklapanje za {current_date}")
+                else:
+                    print(f"⏭ PRESKOČEN: {current_date} (weekday {weekday} nije u {days_of_week})")
+                
+                current_date += timedelta(days=1)
+            
+            
+            
+            if created_availabilities:
+                response_data = {
+                    'created': AvailabilitySerializer(created_availabilities, many=True).data,
+                    'total_created': len(created_availabilities),
+                    'total_days_in_range': day_count,
+                    'selected_days_count': len([d for d in range((end_date - start_date).days + 1) 
+                                              if (start_date + timedelta(days=d)).weekday() in days_of_week]),
+                    'errors': errors
+                }
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'error': 'Nijedan availability nije kreiran.',
+                    'total_days_in_range': day_count,
+                    'selected_days_count': len([d for d in range((end_date - start_date).days + 1) 
+                                              if (start_date + timedelta(days=d)).weekday() in days_of_week]),
+                    'details': errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

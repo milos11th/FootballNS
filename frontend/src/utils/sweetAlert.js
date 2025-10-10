@@ -59,7 +59,7 @@ export const showConfirm = (title, text) => {
   });
 };
 
-// Poboljšana funkcija za prevod grešaka
+// funkcija za prevod grešaka
 export const showApiError = (error) => {
   let errorMessage = "Došlo je do greške!";
 
@@ -97,19 +97,18 @@ export const showApiError = (error) => {
   });
 };
 
-// Specijalna funkcija samo za login greške - POPRAVLJENA
+// Specijalna funkcija samo za login greške
 export const showLoginError = (error) => {
-  console.log("Login error details:", error); // Dodajte ovo za debug
+  console.log("Login error details:", error);
 
   let errorMessage = "Pogrešno korisničko ime ili lozinka.";
 
   if (error.response?.data) {
     const errors = error.response.data;
-    console.log("Error response data:", errors); // Dodajte ovo za debug
+    console.log("Error response data:", errors);
 
     // Proveri različite formate grešaka
     if (errors.detail) {
-      // Ovo je format koji koristi Django REST framework
       errorMessage =
         errorTranslations[errors.detail] ||
         "Pogrešno korisničko ime ili lozinka.";
@@ -125,7 +124,6 @@ export const showLoginError = (error) => {
       // Ako je greška string
       errorMessage = errorTranslations[errors] || errors;
     } else {
-      // Pokušaj da pronađeš bilo koju grešku u objektu
       const allErrorValues = Object.values(errors).flat();
       if (allErrorValues.length > 0) {
         const firstError = allErrorValues[0];
@@ -134,7 +132,6 @@ export const showLoginError = (error) => {
     }
   }
 
-  // Ako je poruka još uvek na engleskom, zameni je sa srpskom
   if (
     errorMessage.includes("No active account found with the given credentials")
   ) {

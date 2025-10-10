@@ -26,7 +26,7 @@ class HallAdmin(admin.ModelAdmin):
     inlines = [HallImageInline]
 
     def image_preview(self, obj):
-        # pokušaj prvo sa related images (HallImage), pa fallback na polje image iz Hall modela
+        
         first = None
         if hasattr(obj, 'images'):
             first = obj.images.first()

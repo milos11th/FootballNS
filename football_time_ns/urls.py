@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (
-    AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView,HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, HallReviewsView, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, OwnerReviewsView, RegisterView, MeView,
+    AvailabilityBulkCreate, AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView,HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, HallReviewsView, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, OwnerReviewsView, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
     OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView, ReviewCreateView, UserReviewableAppointmentsView, UserReviewsView, VerifyEmailView
@@ -21,6 +21,7 @@ urlpatterns = [
     path('availabilities/', AvailabilityList.as_view(), name='availability_list'),  
     path('halls/<int:hall_id>/free/', HallFreeSlots.as_view(), name='hall_free_slots'),
     path('availabilities/<int:pk>/', AvailabilityDelete.as_view(), name='availability_delete'),
+    path('availabilities/bulk-create/', AvailabilityBulkCreate.as_view(), name='availability-bulk-create'),
 
    # auth routes
     path('api/register/', RegisterView.as_view(), name='register'),

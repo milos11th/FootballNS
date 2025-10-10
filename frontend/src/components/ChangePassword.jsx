@@ -18,7 +18,7 @@ export default function ChangePassword() {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    // Clear error when user starts typing
+
     if (errors[e.target.name]) {
       setErrors({
         ...errors,

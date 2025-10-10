@@ -1,5 +1,10 @@
-
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import api from "../api";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 
@@ -9,7 +14,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null); // object from /api/me/
   const [loading, setLoading] = useState(true);
 
-  // load current user (if access token present)
+  // ucitaj usera ako je token ispravan
   const loadMe = useCallback(async () => {
     const token = localStorage.getItem(ACCESS_TOKEN);
     if (!token) {
@@ -23,7 +28,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return res.data;
     } catch (err) {
-      // token invalid or server unreachable
+      // token nije validan ili je server nedostupan
       console.warn("loadMe failed", err);
       setUser(null);
       setLoading(false);
@@ -35,7 +40,7 @@ export function AuthProvider({ children }) {
     loadMe();
   }, [loadMe]);
 
-  // login: store tokens then load user
+  // login: posalji token i loaduj usera
   const login = async ({ access, refresh }) => {
     localStorage.setItem(ACCESS_TOKEN, access);
     localStorage.setItem(REFRESH_TOKEN, refresh);
@@ -43,14 +48,14 @@ export function AuthProvider({ children }) {
     return u;
   };
 
-  // logout: remove tokens and user
+  // logout: obrisi token i izbaci usera
   const logout = () => {
     localStorage.removeItem(ACCESS_TOKEN);
     localStorage.removeItem(REFRESH_TOKEN);
     setUser(null);
   };
 
-  // refresh helper (exposed if needed)
+  // refresh: loaduj usera
   const refresh = loadMe;
 
   return (

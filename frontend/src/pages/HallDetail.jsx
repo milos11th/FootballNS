@@ -79,7 +79,6 @@ function HallDetail() {
       return;
     }
 
-    // PROVERA DA LI JE TERMIN U PROŠLOSTI
     const selectedSlot = freeSlots.find((s) => s.start === selectedSlotStart);
     if (selectedSlot && new Date(selectedSlot.end) <= new Date()) {
       await showError("Ne možete rezervisati termine u prošlosti!");
@@ -133,7 +132,7 @@ function HallDetail() {
     return new Date(slot.end) <= new Date();
   };
 
-  // Funkcija za proveru da li je termin danas u prošlosti
+  // Funkcija za proveru da li je termin danas prošao
   const isTodayPastSlot = (slot) => {
     const now = new Date();
     const slotDate = new Date(slot.start);
@@ -157,7 +156,6 @@ function HallDetail() {
 
   return (
     <div className="hall-detail-container">
-      {/* Hall Header with basic info */}
       <div className="hall-header">
         <h1 className="hall-title">{hall.name}</h1>
         <div className="hall-meta-info">
@@ -180,7 +178,6 @@ function HallDetail() {
       )}
 
       <div className="hall-detail-flex">
-        {/* Left column - Images */}
         <div className="hall-left">
           {fullImages.length === 0 ? (
             <div className="hall-placeholder">
@@ -212,7 +209,6 @@ function HallDetail() {
                 ))}
               </Carousel>
 
-              {/* thumbnails */}
               <div className="thumbnails-container">
                 {fullImages.map((url, idx) => (
                   <Image

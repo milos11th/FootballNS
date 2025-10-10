@@ -38,7 +38,6 @@ function MyNavBar() {
 
             {user && (
               <>
-                {/* PROMENI ŠIFRU - SAMO ZA ULOGOVANE */}
                 <Nav.Link as={Link} to="/change-password">
                   🔐 Promeni Šifru
                 </Nav.Link>
@@ -48,7 +47,7 @@ function MyNavBar() {
                     <Nav.Link as={Link} to="/my-appointments">
                       📋 Moje Rezervacije
                     </Nav.Link>
-                    {/* DODATA OPCIJA ZA MOJE OCENE */}
+
                     <Nav.Link as={Link} to="/my-reviews">
                       📝 Moje Ocene
                     </Nav.Link>

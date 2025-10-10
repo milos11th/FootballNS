@@ -31,7 +31,7 @@ def send_reservation_status_email(sender, instance, **kwargs):
             user = instance.user
             hall = instance.hall
             
-            # Prevod statusa na srpski
+            
             status_translation = {
                 'approved': 'ODOBRENA',
                 'rejected': 'ODBIJENA'
@@ -59,10 +59,10 @@ Detalji rezervacije:
 {"Hvala Vam što koristite naše usluge! Srećan trening! 🎯" if instance.status == 'approved' else "Nažalost, vaša rezervacija nije mogla biti odobrena. Pokušajte sa drugim terminom."}
 
 Srdačan pozdrav,
-Football Time Team
+FootballTimeNS Team
 """
             
-            # Pošalji email
+            
             send_mail(
                 subject=subject,
                 message=message,

@@ -52,7 +52,7 @@ function OwnerAppointments({ myHalls, refreshHalls }) {
   const loadPending = async (hallId) => {
     setLoading((prev) => ({ ...prev, [hallId]: true }));
     try {
-      const res = await api.get(`/halls/${hallId}/pending/`); // ← OVDE JE BIO PROBLEM: hall.id → hallId
+      const res = await api.get(`/halls/${hallId}/pending/`);
       setAppointments((prev) => ({ ...prev, [hallId]: res.data }));
     } catch (err) {
       console.error(err);
@@ -70,10 +70,10 @@ function OwnerAppointments({ myHalls, refreshHalls }) {
   };
 
   const handleAction = async (appointmentId, action, hallId) => {
-    const actionText = action === "approve" ? "odobri" : "odbij";
+    const actionText = action === "approve" ? "odobr" : "odbij";
     const result = await showConfirm(
       `${action === "approve" ? "Odobravanje" : "Odbijanje"} rezervacije`,
-      `Da li ste sigurni da želite da ${actionText} ovu rezervaciju?`
+      `Da li ste sigurni da želite da ${actionText}te ovu rezervaciju?`
     );
 
     if (!result.isConfirmed) return;
@@ -84,7 +84,7 @@ function OwnerAppointments({ myHalls, refreshHalls }) {
       });
       await showSuccess(`Rezervacija uspešno ${actionText}ena!`);
       // Refresh samo rezervacije za tu halu
-      await loadPending(hallId); // ← Sada će hallId biti ispravno prosleđen
+      await loadPending(hallId);
     } catch (err) {
       console.error(err);
       showApiError(err);
@@ -251,7 +251,6 @@ function OwnerAppointments({ myHalls, refreshHalls }) {
         </Row>
       )}
 
-      {/* Refresh dugme */}
       <div className="text-center mt-4">
         <Button
           variant="outline-primary"

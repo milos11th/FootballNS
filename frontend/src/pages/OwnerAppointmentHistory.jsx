@@ -8,9 +8,10 @@ import {
   Spinner,
   Alert,
   Form,
+  Table,
 } from "react-bootstrap";
 import api from "../api";
-import { showApiError, showSuccess } from "../utils/sweetAlert";
+import { showApiError } from "../utils/sweetAlert";
 
 function OwnerAppointmentHistory() {
   const [appointments, setAppointments] = useState([]);
@@ -18,17 +19,7 @@ function OwnerAppointmentHistory() {
   const [filter, setFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [exporting, setExporting] = useState(false);
-
-  const handleCheckIn = async (appointmentId) => {
-    try {
-      await api.post(`/appointments/${appointmentId}/checkin/`);
-      await showSuccess("Korisnik uspešno check-in-ovan!");
-      fetchAllAppointments();
-    } catch (err) {
-      console.error("Error checking in:", err);
-      showApiError(err);
-    }
-  };
+  const [showCancellationStats, setShowCancellationStats] = useState(false);
 
   useEffect(() => {
     fetchAllAppointments();
@@ -50,18 +41,43 @@ function OwnerAppointmentHistory() {
     }
   };
 
-  // FUNKCIJA ZA PROVERU CHECK-IN-A ZA VLASNIKE
-  const canCheckIn = (appointment) => {
-    if (appointment.checked_in) return false;
-    if (appointment.status !== "approved") return false;
+  // NOVO: Statistika otkazivanja po korisnicima
+  const getCancellationStats = () => {
+    const userCancellations = {};
 
-    const now = new Date();
-    const startTime = new Date(appointment.start);
-    const endTime = new Date(appointment.end);
+    appointments.forEach((appointment) => {
+      if (appointment.status === "cancelled") {
+        const username = appointment.user;
+        if (!userCancellations[username]) {
+          userCancellations[username] = {
+            count: 0,
+            lastCancellation: appointment.start,
+          };
+        }
+        userCancellations[username].count++;
 
-    // Vlasnici mogu da check-in-uju bilo kada tokom termina
-    return now <= endTime;
+        // Ažuriraj poslednje otkazivanje ako je novije
+        if (
+          new Date(appointment.start) >
+          new Date(userCancellations[username].lastCancellation)
+        ) {
+          userCancellations[username].lastCancellation = appointment.start;
+        }
+      }
+    });
+
+    // Sortiraj po broju otkazivanja (opadajuće)
+    return Object.entries(userCancellations)
+      .map(([username, data]) => ({
+        username,
+        count: data.count,
+        lastCancellation: data.lastCancellation,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 korisnika
   };
+
+  const cancellationStats = getCancellationStats();
 
   const handleExportPDF = async () => {
     setExporting(true);
@@ -186,7 +202,89 @@ function OwnerAppointmentHistory() {
         </div>
       </div>
 
-      {/* DODAJ CHECK-IN STATISTIKU */}
+      {/* NOVO: Statistika otkazivanja */}
+      {cancellationStats.length > 0 && (
+        <Card className="mb-4 border-warning">
+          <Card.Header className="bg-warning bg-opacity-10 d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">⚠️ Statistika Otkazivanja</h5>
+            <Button
+              variant="outline-warning"
+              size="sm"
+              onClick={() => setShowCancellationStats(!showCancellationStats)}
+            >
+              {showCancellationStats ? "👇 Sakrij" : "👆 Prikaži"}
+            </Button>
+          </Card.Header>
+
+          {showCancellationStats && (
+            <Card.Body>
+              <p className="text-muted mb-3">
+                Korisnici sa najviše otkazanih rezervacija:
+              </p>
+
+              <Table striped bordered hover size="sm">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Korisnik</th>
+                    <th>Broj otkazivanja</th>
+                    <th>Poslednje otkazivanje</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cancellationStats.map((user, index) => (
+                    <tr key={user.username}>
+                      <td>
+                        <Badge
+                          bg={
+                            index === 0
+                              ? "danger"
+                              : index === 1
+                              ? "warning"
+                              : index === 2
+                              ? "info"
+                              : "secondary"
+                          }
+                        >
+                          {index + 1}
+                        </Badge>
+                      </td>
+                      <td>
+                        <strong>{user.username}</strong>
+                        {index === 0 && user.count >= 3 && (
+                          <Badge
+                            bg="danger"
+                            className="ms-1"
+                            title="Često otkazuje"
+                          >
+                            ⚠️
+                          </Badge>
+                        )}
+                      </td>
+                      <td>
+                        <Badge bg="secondary">{user.count}</Badge>
+                      </td>
+                      <td>
+                        {new Date(user.lastCancellation).toLocaleDateString(
+                          "sr-RS"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+
+              <div className="mt-3">
+                <small className="text-muted">
+                  💡 <strong>Savet:</strong> Korisnici sa 3+ otkazivanja mogu
+                  biti neozbiljni.
+                </small>
+              </div>
+            </Card.Body>
+          )}
+        </Card>
+      )}
+
       <Row className="mb-4">
         <Col md={2} sm={4}>
           <Card className="border-0 bg-primary bg-opacity-10">
@@ -335,23 +433,10 @@ function OwnerAppointmentHistory() {
                           >
                             {getStatusText(appointment.status)}
                           </Badge>
-
-                          {/* CHECK-IN ZA VLASNIKE */}
-                          {appointment.checked_in ? (
+                          {appointment.checked_in && (
                             <Badge bg="info" className="ms-1">
-                              ✅ Check-in
+                              ✅ Check-in-ovano
                             </Badge>
-                          ) : (
-                            canCheckIn(appointment) && (
-                              <Button
-                                variant="outline-info"
-                                size="sm"
-                                onClick={() => handleCheckIn(appointment.id)}
-                                className="ms-1"
-                              >
-                                📍 Check-in
-                              </Button>
-                            )
                           )}
                         </div>
                       </div>

@@ -28,7 +28,6 @@ class HallImageSerializer(serializers.ModelSerializer):
 class HallSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
     images = HallImageSerializer(many=True, read_only=True)
-    # make image writable so we can upload/update main image via multipart
     image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
@@ -38,7 +37,7 @@ class HallSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
-        # replace image path with absolute URL (or null)
+        
         if instance.image:
             data['image'] = request.build_absolute_uri(instance.image.url) if request else instance.image.url
         else:
@@ -83,7 +82,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         verification_token = get_random_string(50)
         
-        # Proveri da li profile već postoji (kreirao ga signal)
+        # Proveri da li profil već postoji (kreirao ga signal)
         try:
             profile = user.profile
             # Ako postoji, ažuriraj ga
@@ -106,16 +105,13 @@ class RegisterSerializer(serializers.ModelSerializer):
     def send_verification_email(self, user, token):
         verification_url = f"http://localhost:8000/verify-email/{token}/"
 
-        print(f"🔧 DEBUG EMAIL SENDING:")
-        print(f"   To: {user.email}")
-        print(f"   From: {settings.EMAIL_HOST_USER}")
-        print(f"   URL: {verification_url}")
+       
         
         subject = "Verifikujte svoj email - Football Time"
         message = f"""
 Poštovani/poštovana {user.first_name} {user.last_name},
 
-Hvala Vam što ste se registrovali na Football Time!
+Hvala Vam što ste se registrovali na FootballTimeNs!
 
 Da biste aktivirali svoj nalog, molimo Vas da kliknete na link ispod:
 
@@ -153,7 +149,7 @@ class AvailabilitySerializer(serializers.ModelSerializer):
         print(f"Received - Start: {start} (type: {type(start)})")
         print(f"Received - End: {end} (type: {type(end)})")
 
-        # Ako su stringovi, parsiraj ih
+        
         if isinstance(start, str):
             try:
                 naive_start = datetime.fromisoformat(start.replace('Z', '+00:00'))
@@ -168,13 +164,66 @@ class AvailabilitySerializer(serializers.ModelSerializer):
             except ValueError:
                 raise serializers.ValidationError("Invalid end date format")
 
-        print(f"Parsed - Start: {attrs['start']}")
-        print(f"Parsed - End: {attrs['end']}")
-        print("===================================")
+    
         
         if attrs['start'] >= attrs['end']:
             raise serializers.ValidationError("Start must be before end")
         return attrs
+    
+
+
+class AvailabilityBulkSerializer(serializers.Serializer):
+    hall = serializers.PrimaryKeyRelatedField(queryset=Hall.objects.all())
+    start_date = serializers.DateField()
+    end_date = serializers.DateField()
+    start_time = serializers.TimeField()
+    end_time = serializers.TimeField()
+    days_of_week = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=6),
+        required=False,
+        default=[0,1,2,3,4,5,6]
+    )
+    
+    def validate(self, attrs):
+        start_date = attrs['start_date']
+        end_date = attrs['end_date']
+        start_time = attrs['start_time']
+        end_time = attrs['end_time']
+        
+        if start_date > end_date:
+            raise serializers.ValidationError("Start date must be before end date")
+        
+        if start_time >= end_time:
+            raise serializers.ValidationError("Start time must be before end time")
+        
+        # Proveri da li je period predugačak (max 30 dana)
+        days_diff = (end_date - start_date).days
+        if days_diff > 30:
+            raise serializers.ValidationError("Period ne može biti duži od 30 dana")
+            
+        # Proveri da li je start_date u budućnosti
+        from django.utils import timezone
+        if start_date < timezone.now().date():
+            raise serializers.ValidationError("Ne možete kreirati dostupnost za prošle dane")
+        
+        return attrs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
     
 class AppointmentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
@@ -201,7 +250,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         return attrs
 
     def validate_new_password(self, value):
-        # Možeš dodati dodatne validacije za šifru
+        
         if len(value) < 6:
             raise serializers.ValidationError("Šifra mora imati najmanje 6 karaktera.")
         return value
@@ -234,7 +283,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         if appointment and appointment.status != 'approved':
             raise serializers.ValidationError({"appointment": "Možete oceniti samo odobrene rezervacije."})
         
-        # NOVO: Proveri da li je user check-in-ovao (došao na termin)
+        #  Proveri da li je user check-in-ovao (došao na termin)
         if appointment and not appointment.checked_in:
             raise serializers.ValidationError({
                 "appointment": "Možete oceniti samo termine na koje ste došli (check-in)."

@@ -18,7 +18,7 @@ function Form({ route, method, onSuccess, onError }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({}); // Promenjeno u objekat
+  const [errors, setErrors] = useState({});
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -64,7 +64,6 @@ function Form({ route, method, onSuccess, onError }) {
           navigate("/", { replace: true });
         }
       } else {
-        // REGISTRACIJA USPELA - PRIKAZI OBAVESTENJE
         await showSuccess(
           "Prvi korak registracije je uspesan! 📧",
           "Proverite svoj email da biste verifikovali nalog. Link za verifikaciju je poslat na vašu email adresu.",

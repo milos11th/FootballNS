@@ -291,7 +291,6 @@ function UserDashboard() {
             ))}
           </Row>
 
-          {/* Prosleđivanje podataka ReviewSection komponenti */}
           <ReviewSection
             reviewableAppointments={getReviewableAppointments()}
             onReviewAdded={fetchMyReviews}
