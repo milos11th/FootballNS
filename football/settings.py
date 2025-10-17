@@ -53,18 +53,20 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django.contrib.gis'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Dodato za static files na Render-u
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'football.urls'
@@ -106,7 +108,7 @@ else:
     # Lokalni development
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.postgresql",
+            "ENGINE": 'django.contrib.gis.db.backends.postgis',
             "NAME": os.environ.get("POSTGRES_DB", "football_db"),
             "USER": os.environ.get("POSTGRES_USER", "postgres"),
             "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
@@ -164,8 +166,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-  
+    'DEFAULT_PERMISSION_CLASSES': [  
+        'rest_framework.permissions.AllowAny',
+    ]
 }
+
+
 
 SIMPLE_JWT={
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
@@ -178,6 +184,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000", 
     "http://127.0.0.1:8000",
 ]
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Dodaj Render URL za CORS
 if 'RENDER' in os.environ:
@@ -216,3 +223,7 @@ EMAIL_HOST_USER = 'tomibre397@gmail.com'
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_APP_PASSWORD')
 
 DEFAULT_FROM_EMAIL = 'FootballTimeNs <footballtimens@gmail.com>'
+
+
+
+IMAGE_OPTIMIZE = False

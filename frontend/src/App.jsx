@@ -18,6 +18,7 @@ import "../src/styles/index.css";
 import ChangePassword from "./components/ChangePassword";
 import EmailVerified from "./components/EmailVerified";
 import UserReviews from "./components/UserReviews";
+import "leaflet/dist/leaflet.css";
 
 function App() {
   return (

@@ -3,7 +3,7 @@ from .views import (
     AvailabilityBulkCreate, AvailabilityDelete, ChangePasswordView, CustomTokenObtainPairView,HallImageDelete, HallImagesCreate, HallList, HallCreate, HallDetail, HallReviewsView, OwnerAllAppointments, OwnerExportPDF, OwnerMonthlyStats, OwnerReviewsView, RegisterView, MeView,
     AvailabilityCreate, AvailabilityList, HallFreeSlots,
     AppointmentCreateView, AppointmentList, OwnerPendingAppointments,
-    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView, ReviewCreateView, UserReviewableAppointmentsView, UserReviewsView, VerifyEmailView
+    OwnerApproveAppointment, AppointmentCheckIn, AppointmentDelete,MyHallsView, ReviewCreateView, UserReviewableAppointmentsView, UserReviewsView, VerifyEmailView, halls_nearby, halls_within_bounds, set_hall_location
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -15,6 +15,10 @@ urlpatterns = [
     path("my-halls/", MyHallsView.as_view(), name="my-halls"),
     path('halls/<int:hall_id>/images/', HallImagesCreate.as_view(), name='hall_images_create'),
     path('halls/images/<int:pk>/', HallImageDelete.as_view(), name='hall_image_delete'),
+    path('api/halls/<int:hall_id>/set-location/', set_hall_location, name='set-hall-location'),
+    path('api/halls/nearby/', halls_nearby, name='halls-nearby'),
+    path('api/halls/within-bounds/', halls_within_bounds, name='halls-within-bounds'),
+
 
     # availability
     path('availabilities/create/', AvailabilityCreate.as_view(), name='availability_create'),

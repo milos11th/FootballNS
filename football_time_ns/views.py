@@ -27,6 +27,9 @@ from django.shortcuts import redirect
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
+from django.contrib.gis.geos import Point
+from django.contrib.gis.db.models.functions import Distance
+from rest_framework.decorators import api_view, permission_classes
 
 
 
@@ -109,8 +112,9 @@ class MyHallsView(APIView):
 # Register / Me
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = []
+    permission_classes = [AllowAny]  
     serializer_class = RegisterSerializer
+
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
@@ -171,19 +175,6 @@ class AvailabilityCreate(APIView):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-    
 
 class AvailabilityList(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -1057,4 +1048,105 @@ class AvailabilityBulkCreate(APIView):
                     'details': errors
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)# GIS Location Views
+# views.py - set_hall_location funkcija treba da izgleda ovako:
+@api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def set_hall_location(request, hall_id):
+    try:
+        hall = Hall.objects.get(id=hall_id, owner=request.user)
+        lat = request.data.get('lat')
+        lng = request.data.get('lng')
+        
+        print(f"📥 Primljeni podaci: lat={lat}, lng={lng}")  # Debug
+        
+        if not lat or not lng:
+            return Response({'error': 'Latitude i longitude su obavezni.'}, status=400)
+        
+        try:
+            # Kreiraj Point (GEOS geometrija koristi x=lng, y=lat)
+            from django.contrib.gis.geos import Point
+            point = Point(float(lng), float(lat))
+            hall.location = point
+            hall.save()
+            
+            print(f"✅ Lokacija sačuvana: {point}")  # Debug
+            
+            return Response({
+                'success': 'Lokacija postavljena.',
+                'location': {
+                    'lat': point.y,  # y je latitude
+                    'lng': point.x   # x je longitude
+                }
+            })
+            
+        except ValueError as e:
+            return Response({'error': f'Nevalidne koordinate: {str(e)}'}, status=400)
+    
+    except Hall.DoesNotExist:
+        return Response({'error': 'Hala nije pronađena.'}, status=404)
+    except Exception as e:
+        print(f"❌ Greška: {str(e)}")  # Debug
+        return Response({'error': 'Interna greška servera.'}, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def halls_nearby(request):
+    """
+    Pronađi hale u blizini određene lokacije
+    """
+    try:
+        lat = float(request.GET.get('lat', 0))
+        lon = float(request.GET.get('lon', 0))
+        radius = float(request.GET.get('radius', 10))  # km (default 10km)
+    except (TypeError, ValueError):
+        return Response({'error': 'Nevalidne koordinate ili radius.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Kreiraj Point (longitude, latitude)
+    user_location = Point(lon, lat, srid=4326)
+
+    # Pronađi hale unutar radiusa (konvertuj km u metri)
+    nearby_halls = Hall.objects.filter(
+        location__distance_lte=(user_location, radius * 1000)
+    ).annotate(
+        distance=Distance('location', user_location)
+    ).order_by('distance')
+
+    serializer = HallSerializer(nearby_halls, many=True, context={'request': request})
+    
+    # Dodaj distance u response
+    response_data = serializer.data
+    for i, hall_data in enumerate(response_data):
+        hall_data['distance_km'] = round(nearby_halls[i].distance.km, 2) if nearby_halls[i].distance else None
+
+    return Response(response_data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def halls_within_bounds(request):
+    """
+    Pronađi hale unutar bounding box-a (za mape)
+    """
+    try:
+        sw_lat = float(request.GET.get('sw_lat'))
+        sw_lon = float(request.GET.get('sw_lon'))
+        ne_lat = float(request.GET.get('ne_lat'))
+        ne_lon = float(request.GET.get('ne_lon'))
+    except (TypeError, ValueError):
+        return Response({'error': 'Nevalidne bounding box koordinate.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Kreiraj bounding box (min_lon, min_lat, max_lon, max_lat)
+    from django.contrib.gis.geos import Polygon
+    bbox = Polygon.from_bbox((sw_lon, sw_lat, ne_lon, ne_lat))
+    bbox.srid = 4326
+
+    # Pronađi hale unutar bounding box-a
+    halls_in_bounds = Hall.objects.filter(location__within=bbox)
+    
+    serializer = HallSerializer(halls_in_bounds, many=True, context={'request': request})
+    return Response(serializer.data)
+    
+
+
+
+

@@ -4,7 +4,7 @@ import api from "../api";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../styles/HallDetail.css";
-import { Carousel, Image, Badge, Card } from "react-bootstrap";
+import { Carousel, Image, Badge, Card, Button, Modal } from "react-bootstrap";
 import {
   showConfirm,
   showSuccess,
@@ -12,6 +12,20 @@ import {
   showApiError,
 } from "../utils/sweetAlert";
 import ReviewsSection from "../components/ReviewsSection";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Popravite ikone za Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 
 const getFullUrl = (path) => {
   if (!path) return null;
@@ -28,6 +42,7 @@ function HallDetail() {
   const [selectedSlotStart, setSelectedSlotStart] = useState(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
+  const [showMap, setShowMap] = useState(false);
 
   // fetch hall details
   useEffect(() => {
@@ -162,6 +177,17 @@ function HallDetail() {
           <div className="hall-address">
             <span className="address-icon">📍</span>
             {hall.address}
+            {hall.location && (
+              <Button
+                variant="outline-primary"
+                size="sm"
+                className="ms-2"
+                onClick={() => setShowMap(true)}
+                title="Prikaži lokaciju na mapi"
+              >
+                🗺️ Prikaži na mapi
+              </Button>
+            )}
           </div>
           <div className="hall-price-main">
             <span className="price-icon">💰</span>
@@ -315,6 +341,80 @@ function HallDetail() {
       <div className="reviews-section-container">
         <ReviewsSection hallId={id} hallName={hall.name} />
       </div>
+
+      {/* Map Modal - SAMO AKO POSTOJI LOKACIJA */}
+      {hall.location && (
+        <Modal show={showMap} onHide={() => setShowMap(false)} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>Lokacija Hale: {hall.name}</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p className="text-muted mb-3">
+              <strong>Adresa:</strong> {hall.address}
+            </p>
+
+            {/* Leaflet Mapa */}
+            <div
+              style={{
+                height: "400px",
+                width: "100%",
+                borderRadius: "8px",
+                overflow: "hidden",
+              }}
+            >
+              <MapContainer
+                center={[hall.location.lat, hall.location.lng]}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+
+                <Marker position={[hall.location.lat, hall.location.lng]}>
+                  <Popup>
+                    <strong>{hall.name}</strong>
+                    <br />
+                    {hall.address}
+                    <br />
+                    {hall.price} RSD/sat
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+
+            <div className="mt-3 p-3 border rounded bg-light">
+              <strong>📍 Koordinate lokacije:</strong>
+              <br />
+              <strong>Latitude:</strong> {hall.location.lat.toFixed(6)}
+              <br />
+              <strong>Longitude:</strong> {hall.location.lng.toFixed(6)}
+            </div>
+
+            <div className="mt-3">
+              <small className="text-muted">
+                💡 <strong>Savet:</strong> Koristite ovu mapu za navigaciju do
+                hale.
+              </small>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowMap(false)}>
+              Zatvori
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${hall.location.lat},${hall.location.lng}`;
+                window.open(mapsUrl, "_blank");
+              }}
+            >
+              🗺️ Navigacija (Google Maps)
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
     </div>
   );
 }

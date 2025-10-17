@@ -4,6 +4,13 @@ FROM python:3.12-slim
 # system deps for psycopg2 and Pillow
 RUN apt-get update && apt-get install -y build-essential libpq-dev gcc git --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
+# DODAJ OVDE - GDAL dependencies
+RUN apt-get update && apt-get install -y \
+    gdal-bin \
+    libgdal-dev \
+    python3-gdal \
+    --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 

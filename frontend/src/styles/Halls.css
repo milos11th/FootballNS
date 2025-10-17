@@ -243,3 +243,23 @@
 .row.g-4 {
   margin-top: 1rem;
 }
+.filter-card {
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+}
+
+.filter-card .form-label {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.filter-info {
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .filter-card .row > .col-md-4 {
+    margin-bottom: 1rem;
+  }
+}

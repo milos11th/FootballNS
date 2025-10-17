@@ -445,3 +445,22 @@
 .react-calendar__tile--past:enabled:focus {
   background-color: #e9ecef;
 }
+/* Map button styles */
+.hall-address .btn {
+  margin-left: 8px;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+}
+
+/* Map modal styles */
+.map-modal .modal-body {
+  padding: 0;
+}
+
+.map-modal .modal-header {
+  border-bottom: 1px solid #dee2e6;
+}
+
+.map-modal .modal-footer {
+  border-top: 1px solid #dee2e6;
+}

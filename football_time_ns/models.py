@@ -1,5 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.gis.db import models as gis_models
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from PIL import Image
+import io
+
 
 class Hall(models.Model):
     name = models.CharField(max_length=100)
@@ -7,7 +12,23 @@ class Hall(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2)
     description = models.TextField(default="Nema opisa")
     owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='halls')
-    image = models.ImageField(upload_to="halls/", null=True, blank=True) 
+    image = models.ImageField(
+        upload_to="halls/", 
+        null=True, 
+        blank=True,
+        
+        width_field=None,
+        height_field=None
+    ) 
+    location = gis_models.PointField(geography=True, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        
+        if self.image and hasattr(self.image, 'file'):
+            
+            super().save(*args, **kwargs)
+        else:
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -16,11 +37,18 @@ class Hall(models.Model):
 
 class HallImage(models.Model):
     hall = models.ForeignKey(Hall, on_delete=models.CASCADE, related_name='images')
-    image = models.ImageField(upload_to="halls/")
+    image = models.ImageField(
+        upload_to="halls/",
+        width_field=None,
+        height_field=None
+    )
+
+    def save(self, *args, **kwargs):
+        # Preskoči procesiranje slika
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.hall.name} Image"
-
 
 
 

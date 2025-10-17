@@ -10,6 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
+
 class HallImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
@@ -29,10 +30,15 @@ class HallSerializer(serializers.ModelSerializer):
     owner = serializers.ReadOnlyField(source='owner.username')
     images = HallImageSerializer(many=True, read_only=True)
     image = serializers.ImageField(required=False, allow_null=True)
+    location = serializers.SerializerMethodField()  
+    
+
+    
+        
 
     class Meta:
         model = Hall
-        fields = ['id', 'name', 'address', 'price', 'description', 'owner', 'image', 'images']
+        fields = ['id', 'name', 'address', 'price', 'description', 'owner', 'image', 'images', 'location']  
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -43,6 +49,17 @@ class HallSerializer(serializers.ModelSerializer):
         else:
             data['image'] = None
         return data
+
+    # DODAJ OVU METODU
+    def get_location(self, obj):
+        if obj.location:
+            return {
+                'lat': obj.location.y,  
+                'lng': obj.location.x   
+            }
+        return None
+
+
 
 
 class UserSerializer(serializers.ModelSerializer):
